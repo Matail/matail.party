@@ -34,17 +34,22 @@ const { label = '글 목록' } = Astro.props;
 		height: 100%;
 	}
 
+	/* 두 줄로 세우고 옆으로 흐른다. 카드는 위에서 아래로 채운 뒤 다음 칸으로 넘어간다.
+
+	   스크롤 스냅은 걷어냈다 — 휠 한 칸이 스냅 지점을 못 넘으면 제자리로 끌려와서
+	   "휠이 안 먹는" 것처럼 보인다 (2560px 화면에서 실제로 그랬다). */
 	.shelf {
-		display: flex;
-		align-items: stretch;
+		display: grid;
+		grid-auto-flow: column;
+		grid-template-rows: repeat(2, minmax(0, auto));
+		grid-auto-columns: max-content;
+		align-content: center;
 		gap: var(--s-4);
 		height: 100%;
 		/* 카드 그림자와 들림이 잘리지 않게 위아래로 조금 여유를 준다 */
 		padding: 6px var(--s-5) var(--s-4) 0;
 		overflow-x: auto;
 		overflow-y: hidden;
-		scroll-snap-type: x proximity;
-		scroll-padding-left: 0;
 		overscroll-behavior-x: contain;
 		scrollbar-width: thin;
 		scrollbar-color: #2B2B38 transparent;
@@ -57,16 +62,15 @@ const { label = '글 목록' } = Astro.props;
 	}
 
 	.shelf > :global(*) {
-		flex: none;
-		height: 100%;
-		scroll-snap-align: start;
+		min-height: 0;
 	}
 
 	/* 가장자리 표시(.hs-edge)는 global.css 의 공용 부품이다 */
 
-	/* 스크롤이 필요 없을 만큼 짧으면 선반이 아니라 그냥 줄이다 */
-	@media (max-height: 560px) {
+	/* 낮은 화면에서는 한 줄로 되돌린다 — 두 줄이면 카드가 우표만 해진다 */
+	@media (max-height: 640px) {
 		.shelf {
+			grid-template-rows: minmax(0, 1fr);
 			height: auto;
 			padding-right: 0;
 		}
@@ -76,4 +80,5 @@ const { label = '글 목록' } = Astro.props;
 <script>
 	import { initHScroll } from '../scripts/hscroll.js';
 	initHScroll();
+	document.addEventListener('astro:page-load', () => initHScroll());
 </script>

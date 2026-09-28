@@ -2,9 +2,8 @@
 import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import GameDeck from '../components/GameDeck.astro';
-import Hero from '../components/Hero.astro';
 
-/* 홈에는 두 가지만 있다: 한 문장짜리 히어로, 그리고 게임 덱.
+/* 홈에 있는 건 게임 덱 하나다 (맨 위 마크는 레이아웃이 모든 페이지에 얹는다).
    덱에는 게임만 들어간다. 놀 수 있는 것부터 앞에 두고, 그 다음이 준비 중인 것.
    (출시일만으로 정렬하면 미래 날짜인 "준비 중"이 맨 앞으로 와 버린다) */
 const rank = { published: 0, wip: 1, planned: 2 };
@@ -14,8 +13,8 @@ const games = (await getCollection('games')).sort((a, b) => {
 });
 ---
 
-<Layout intro={true} fit={true}>
-	<Hero />
+<Layout intro={true} fit={true} head={false}>
+	<h1 class="sr-only">my·site — 심야 작업실</h1>
 
 	<!-- 게임 덱 — 이 페이지의 본론.
 	     data-reveal 을 씌우지 않는다: 덱은 화면에 들어올 때

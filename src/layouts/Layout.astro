@@ -1,5 +1,7 @@
 ---
+import { ClientRouter } from 'astro:transitions';
 import '../styles/global.css';
+import Brand from '../components/Brand.astro';
 import Footer from '../components/Footer.astro';
 import Intro from '../components/Intro.astro';
 
@@ -13,6 +15,8 @@ interface Props {
 	width?: 'wide' | 'narrow';
 	/** 한 화면에 딱 맞춘다 (홈). 스크롤이 없다 */
 	fit?: boolean;
+	/** 이 페이지가 자기 머리(제목·알약 줄)를 갖는가. 홈은 마크와 내용뿐이라 false */
+	head?: boolean;
 }
 
 const {
@@ -21,7 +25,9 @@ const {
 	intro = false,
 	width = 'wide',
 	fit = false,
+	head = true,
 } = Astro.props;
+
 ---
 
 <!doctype html>
@@ -48,6 +54,10 @@ const {
 		/>
 
 		<title>{title}</title>
+
+		{/* 페이지를 통째로 새로 받지 않고 가운데만 갈아끼운다.
+		    마크와 아이콘 줄은 transition:persist 로 그대로 남으므로 다시 그려지지 않는다. */}
+		<ClientRouter />
 
 		<!-- 인트로 재생 여부를 첫 페인트 전에 결정한다 (깜빡임 방지) -->
 		<script is:inline define:vars={{ intro }}>
@@ -78,12 +88,21 @@ const {
 				}
 			})();
 		</script>
+
+		<!-- 페이지를 갈아끼울 때는 인트로를 틀지 않는다. 첫 방문에 한 번 도는 연출이고,
+		     "인트로 다시 보기" 링크는 data-astro-reload 로 진짜 새로고침을 시킨다. -->
+		<script>
+			document.addEventListener('astro:after-swap', function () {
+				document.documentElement.dataset.intro = 'off';
+			});
+		</script>
 	</head>
 	<body>
 		{intro && <Intro />}
 
 		<div class="page" id="page">
-			<main class:list={['main', width]}>
+			<main class:list={['main', width, { 'has-head': head }]}>
+				<Brand />
 				<slot />
 			</main>
 			<Footer />
@@ -106,11 +125,24 @@ const {
 		grid-template-rows: 1fr auto;
 	}
 
+	/* 칸은 둘 아니면 셋이다 — 홈은 [마크 + 덱], 나머지는 [마크 + 페이지 머리 + 내용].
+	   flex 로 늘리면 안 된다: 덱은 container-type: size 로 높이를 재는데,
+	   flex-grow 로 생긴 높이에는 안쪽 100% 가 기대지 못해 카드가 0px 이 된다.
+	   격자의 1fr 은 확정 높이라 그 문제가 없다. */
 	html[data-fit] #page > .main {
 		min-height: 0;
+		/* 자기도 격자 칸이다. 안에 가로 스크롤 영역이 있으면 min-width: auto 때문에
+		   칸을 밀어내며 화면 밖까지 자란다 (375px 화면에서 1120px 이 됐다) */
+		min-width: 0;
 		display: grid;
 		grid-template-rows: auto 1fr;
 		padding-bottom: 0;
+	}
+
+	/* 칸 수는 페이지가 알려준다 (head prop). 자식 개수로 세지 않는다 —
+	   숨은 제목(position: absolute)이나 Astro 가 붙이는 <script> 까지 세어져서 덱이 납작해졌다. */
+	html[data-fit] #page > .main.has-head {
+		grid-template-rows: auto auto 1fr;
 	}
 
 	/* 격자 칸은 기본값이 min-width: auto 라, 안에 든 가로 스크롤 영역이

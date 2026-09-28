@@ -51,7 +51,6 @@ const cat = CATEGORIES[d.category as Category];
 
 	.feat:hover {
 		border-color: var(--border-lit);
-		box-shadow: var(--shadow-lift);
 	}
 
 	.art {
@@ -77,8 +76,8 @@ const cat = CATEGORIES[d.category as Category];
 		position: absolute;
 		inset: 0;
 		background:
-			radial-gradient(75% 70% at 50% 55%, rgba(5, 5, 8, 0.72), transparent 78%),
-			linear-gradient(180deg, rgba(5, 5, 8, 0.55) 0%, rgba(5, 5, 8, 0.25) 42%, rgba(5, 5, 8, 0.8) 100%);
+			radial-gradient(72% 66% at 50% 56%, rgba(5, 5, 8, 0.78), transparent 76%),
+			linear-gradient(180deg, rgba(5, 5, 8, 0.62) 0%, rgba(5, 5, 8, 0.3) 40%, rgba(5, 5, 8, 0.86) 100%);
 	}
 
 	.inner {
@@ -96,13 +95,14 @@ const cat = CATEGORIES[d.category as Category];
 	.inner h2 {
 		margin: 0;
 		font-size: clamp(1.75rem, 4.2vw, 3rem);
-		font-weight: 900;
-		letter-spacing: -0.04em;
+		/* 표제 무게는 전역 사다리(720)와 같은 자리에 둔다. 900 은 그림 위에서 특히 둔탁하다 */
+		font-weight: 720;
+		letter-spacing: -0.042em;
 		line-height: 1.16;
 		/* em 으로 재야 한글 기준이 된다 — 한 줄에 13자 안팎 */
 		max-width: 13em;
 		text-wrap: balance;
-		text-shadow: 0 2px 30px rgba(0, 0, 0, 0.75);
+		/* 글씨 뒤에 검은 번짐을 깔면 글로우처럼 보인다. 읽히게 하는 일은 위의 막이 한다 */
 	}
 
 	.excerpt {
@@ -154,11 +154,13 @@ const cat = CATEGORIES[d.category as Category];
 
 	/* ===== 선반의 첫 칸 =====
 	   높이는 선반이 준다. 가로로 누운 16:9 대신 세로로 선 포스터가 된다. */
+	/* 선반이 두 줄이므로 큰 카드는 두 줄을 한꺼번에 차지한다 */
 	.feat.shelf {
 		aspect-ratio: auto;
 		min-height: 0;
 		max-height: none;
-		width: clamp(300px, 36vw, 480px);
+		width: clamp(300px, 26vw, 460px);
+		grid-row: span 2;
 	}
 
 	@media (max-width: 560px) {

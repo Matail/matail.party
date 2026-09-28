@@ -24,15 +24,7 @@ const rest = posts.filter((p) => p.id !== featured?.id).sort(byNewest);
 	fit={true}
 >
 	<header class="head">
-		<div class="titles">
-			<h1 data-reveal>
-				만든 것, <span class="accent">배운 것.</span>
-			</h1>
-			<p class="lead" data-reveal style="--reveal-delay: 80">
-				막힌 지점, 돌아간 길, 다음에 다시 쓸 방법.
-			</p>
-		</div>
-
+		<h1 class="sr-only">작업 기록</h1>
 		<div data-reveal style="--reveal-delay: 140"><BlogNav active="all" /></div>
 	</header>
 
@@ -53,28 +45,15 @@ const rest = posts.filter((p) => p.id !== featured?.id).sort(byNewest);
 </Layout>
 
 <style>
-	/* 머리는 한 줄로 눕힌다 — 여기서 아낀 세로가 그대로 카드 높이가 된다 */
+	/* 머리에 남은 건 분류 알약뿐이다. 여기서 아낀 세로가 그대로 카드 높이가 된다 */
 	.head {
 		display: flex;
-		align-items: flex-end;
-		justify-content: space-between;
-		gap: var(--s-5);
-		flex-wrap: wrap;
-		padding: clamp(1.5rem, 3.5vw, 2.75rem) 0 clamp(1rem, 2.5vw, 1.5rem);
+		justify-content: center;
+		padding: 0 0 clamp(1rem, 2.5vw, 1.5rem);
 	}
 
-	.titles h1 {
-		margin: 0 0 0.5rem;
-		font-size: clamp(1.75rem, 3.6vw, 2.9rem);
-	}
-
-	.titles .lead {
-		margin: 0;
-		font-size: var(--fs-sm);
-	}
-
-	/* 분류 알약 아래 여백은 선반이 가져간다 */
 	.head :global(.bnav) {
+		justify-content: center;
 		padding-bottom: 0;
 	}
 
@@ -89,10 +68,5 @@ const rest = posts.filter((p) => p.id !== featured?.id).sort(byNewest);
 		color: var(--text-mute);
 	}
 
-	@media (max-width: 720px) {
-		.head {
-			align-items: flex-start;
-			gap: var(--s-4);
-		}
-	}
+
 </style>

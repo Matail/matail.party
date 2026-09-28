@@ -41,9 +41,9 @@ const links = [
 ];
 ---
 
-<footer class="rail" aria-label="사이트 메뉴">
+<footer class="rail" aria-label="사이트 메뉴" transition:persist="rail">
 	{links.map((l) => (
-		<a class="rail-item" href={l.href}>
+		<a class="rail-item" href={l.href} data-astro-reload={l.href.includes('intro') ? true : undefined}>
 			<span class="rail-icon" aria-hidden="true">
 				<svg viewBox="0 0 24 24"><Fragment set:html={l.icon} /></svg>
 			</span>

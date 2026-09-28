@@ -28,10 +28,10 @@ const related = [...sameLine, ...all.filter((p) => p.data.category !== d.categor
 
 <Layout title={`${d.title} · my-site`} description={d.description} width="wide" fit={true}>
 	<header class="head" data-reveal>
-		<a href="/blog" class="back">← 작업 기록</a>
+		<a href="/blog" class="back">← ALL POSTS</a>
 
 		<div class="meta">
-			<a class="pill" href={`/blog/c/${d.category}/`}>{cat.label}</a>
+			<a class="pill" href={`/blog/c/${d.category}/`} title={cat.label}>{cat.en}</a>
 			<time datetime={d.pubDate.toISOString()}>{fmtDate(d.pubDate)}</time>
 			{d.updatedDate && <span class="updated">수정 {fmtDate(d.updatedDate)}</span>}
 			<span class="mins">{mins}분</span>
@@ -82,7 +82,7 @@ const related = [...sameLine, ...all.filter((p) => p.data.category !== d.categor
 								</li>
 							))}
 						</ul>
-						<a class="pill" href="/blog">글 목록으로</a>
+						<a class="pill" href="/blog">ALL POSTS</a>
 					</aside>
 				)
 			}
@@ -101,14 +101,16 @@ const related = [...sameLine, ...all.filter((p) => p.data.category !== d.categor
 		justify-content: space-between;
 		gap: var(--s-4);
 		flex-wrap: wrap;
-		padding: clamp(1.25rem, 3vw, 2rem) 0 clamp(0.75rem, 2vw, 1.25rem);
+		padding: 0 0 clamp(0.75rem, 2vw, 1.25rem);
 	}
 
 	.back {
 		display: inline-flex;
 		align-items: center;
 		min-height: 36px;
-		font-size: var(--fs-xs);
+		font-family: var(--font-mono);
+		font-size: var(--fs-mono);
+		letter-spacing: 0.06em;
 		color: var(--text-mute);
 	}
 
@@ -393,4 +395,5 @@ const related = [...sameLine, ...all.filter((p) => p.data.category !== d.categor
 <script>
 	import { initHScroll } from '../../scripts/hscroll.js';
 	initHScroll();
+	document.addEventListener('astro:page-load', () => initHScroll());
 </script>

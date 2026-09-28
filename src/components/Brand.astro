@@ -1,0 +1,124 @@
+---
+/* 이 사이트의 마크. 모든 페이지 맨 위 가운데에 같은 모습으로 선다.
+   바뀌는 건 아래 내용뿐이고, 이 줄과 전구는 페이지가 넘어가도 그대로다.
+
+   구성은 전구 하나와 이름 하나뿐이다.
+   줄은 화면 맨 위에서 내려오고, 그 끝에 전구가 달리고, 아래에 이름이 온다.
+   배경의 빛도 같은 자리(화면 위 가운데)에서 떨어지므로 — 마크가 곧 이 페이지의 광원이다.
+
+   어느 페이지에서나 똑같은 홈 링크다. 모양도 태그도 같아야 페이지를 넘어갈 때
+   이 노드를 그대로 남길 수 있다 (Layout 의 transition:persist).
+   각 페이지의 제목(h1)은 따로 있다.
+
+   persist 는 "페이지가 바뀌어도 이 노드를 그대로 쓴다"는 표시다. 인트로의 노트북 화면 안에도
+   같은 마크가 들어가는데, 같은 이름표가 둘이면 Astro 가 숨어 있는 쪽을 집어 가서
+   진짜 마크가 새로 그려진다. 그래서 화면 속 복제본은 이름표를 달지 않는다. */
+interface Props {
+	persist?: boolean;
+}
+const { persist = true } = Astro.props;
+---
+
+<a
+	class="brand tap"
+	href="/"
+	aria-label="my-site 홈으로"
+	data-astro-transition-persist={persist ? 'brand' : undefined}
+	data-reveal
+	style="--reveal-delay: 60"
+>
+	<span class="lamp" aria-hidden="true">
+		<span class="cord"></span>
+		<span class="bulb"></span>
+	</span>
+	<span class="word">my<span class="dot">·</span>site</span>
+</a>
+
+<style>
+	.brand {
+		display: grid;
+		justify-items: center;
+		gap: clamp(0.45rem, 1.1vh, 0.8rem);
+		margin: 0;
+		padding: 0 0 clamp(0.9rem, 2vw, 1.5rem);
+		justify-self: center;
+		color: var(--text);
+	}
+
+	/* --- 매달린 전구 --- */
+	.lamp {
+		position: relative;
+		width: 12px;
+		/* 줄 길이는 화면 높이를 따라간다. 낮은 화면에서는 짧게 매달린다 */
+		height: clamp(26px, 5.5vh, 54px);
+	}
+
+	.cord {
+		position: absolute;
+		top: 0;
+		bottom: 10px;
+		left: 50%;
+		width: 1px;
+		transform: translateX(-50%);
+		background: linear-gradient(180deg, transparent, var(--border-lit) 40%, var(--lamp-deep));
+	}
+
+	.bulb {
+		position: absolute;
+		bottom: 0;
+		left: 50%;
+		width: 11px;
+		height: 11px;
+		border-radius: 50%;
+		transform: translateX(-50%);
+		/* 유리알 — 왼쪽 위에 하이라이트가 하나 */
+		background: radial-gradient(circle at 36% 32%, #FFE9C6, var(--lamp) 56%, #DE8F22);
+		box-shadow:
+			0 0 10px 2px rgba(255, 180, 70, 0.45),
+			0 0 34px 10px rgba(255, 180, 70, 0.15);
+		/* 방의 빛과 같은 리듬으로 숨 쉰다 (global.css 의 배경과 같은 키프레임) */
+		animation: lamp-breathe 8.5s ease-in-out infinite;
+		transition: box-shadow var(--t-base) var(--ease-soft);
+	}
+
+	/* --- 이름 ---
+	   이 사이트를 위해 만든 픽셀 폰트(Studio Marquee)로 찍는다. 라틴만 있는 폰트인데
+	   이름이 라틴이라 마침 들어맞는다. 가운데 점은 폰트에 없어서 본문 글꼴로 떨어지고,
+	   그 자리만 전구색이다. */
+	.word {
+		font-family: 'Studio Marquee', var(--font-sans);
+		font-size: clamp(1.4rem, 2.9vw, 2.05rem);
+		line-height: 1;
+		letter-spacing: 0.02em;
+		color: var(--text);
+		transition: color var(--t-fast) var(--ease-soft);
+	}
+
+	.dot {
+		font-family: var(--font-sans);
+		color: var(--lamp);
+	}
+
+	/* 홈이 아닌 페이지에서는 누를 수 있다 — 커서를 올리면 불이 조금 더 밝아진다 */
+	.brand.tap {
+		padding-bottom: clamp(0.9rem, 2vw, 1.5rem);
+		cursor: pointer;
+	}
+
+	.brand.tap:hover .bulb,
+	.brand.tap:focus-visible .bulb {
+		box-shadow:
+			0 0 14px 3px rgba(255, 180, 70, 0.62),
+			0 0 44px 14px rgba(255, 180, 70, 0.22);
+	}
+
+	.brand.tap:hover .word {
+		color: var(--lamp-soft);
+	}
+
+	.brand.tap:focus-visible {
+		outline: 2px solid var(--lamp);
+		outline-offset: 6px;
+		border-radius: 10px;
+	}
+</style>

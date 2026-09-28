@@ -32,7 +32,7 @@ const cat = CATEGORIES[category];
 		<div class="titles">
 			<h1 data-reveal>
 				{cat.label}
-				<span class="n">{posts.length}</span>
+				<span class="n">{cat.en} · {posts.length}</span>
 			</h1>
 			<p class="lead" data-reveal style="--reveal-delay: 80">{cat.blurb}</p>
 		</div>
@@ -62,7 +62,7 @@ const cat = CATEGORIES[category];
 		justify-content: space-between;
 		gap: var(--s-5);
 		flex-wrap: wrap;
-		padding: clamp(1.5rem, 3.5vw, 2.75rem) 0 clamp(1rem, 2.5vw, 1.5rem);
+		padding: 0 0 clamp(1rem, 2.5vw, 1.5rem);
 	}
 
 	.titles h1 {

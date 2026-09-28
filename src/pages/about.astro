@@ -81,8 +81,10 @@ const facts = [
 </Layout>
 
 <style>
+	/* 가운데로 모은다 — 마크가 화면 위 가운데에 있으므로 제목도 그 아래 같은 축에 선다 */
 	.head {
-		padding: clamp(1.5rem, 3.5vw, 2.75rem) 0 clamp(1rem, 2.5vw, 1.5rem);
+		padding: 0 0 clamp(1rem, 2.5vw, 1.5rem);
+		text-align: center;
 	}
 
 	.titles h1 {
@@ -91,13 +93,14 @@ const facts = [
 	}
 
 	.titles .lead {
-		margin: 0;
+		margin: 0 auto;
 		font-size: var(--fs-sm);
 		max-width: 44rem;
 	}
 
 	/* 첫 칸 맨 위 — 숫자판처럼 사실만 적어 둔다 */
 	.facts {
+		text-align: center;
 		break-inside: avoid;
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
@@ -162,4 +165,5 @@ const facts = [
 <script>
 	import { initHScroll } from '../scripts/hscroll.js';
 	initHScroll();
+	document.addEventListener('astro:page-load', () => initHScroll());
 </script>

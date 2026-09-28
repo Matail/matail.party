@@ -16,13 +16,17 @@ const count = (c: Category) => posts.filter((p) => p.data.category === c).length
 
 <nav class="bnav" aria-label="글 분류">
 	<a href="/blog" class:list={['pill', { on: active === 'all' }]}>
-		전체
+		ALL
 		<span class="n">{posts.length}</span>
 	</a>
 	{
 		CATEGORY_ORDER.filter((c) => count(c) > 0).map((c) => (
-			<a href={`/blog/c/${c}/`} class:list={['pill', { on: active === c }]}>
-				{CATEGORIES[c].label}
+			<a
+				href={`/blog/c/${c}/`}
+				class:list={['pill', { on: active === c }]}
+				title={CATEGORIES[c].label}
+			>
+				{CATEGORIES[c].en}
 				<span class="n">{count(c)}</span>
 			</a>
 		))

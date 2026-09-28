@@ -17,16 +17,21 @@
 }
 
 :root {
-	/* --- 배경 레이어 (깊이 순서대로) --- */
+	/* --- 면 사다리 (깊이 순서대로) ---
+	   어두운 화면에서는 검은 그림자가 보이지 않는다. 그래서 떠 있는 것은
+	   그림자로 띄우지 않고 "바탕보다 밝은 면"으로 올린다.
+	   0 바탕 → 1 카드 → 2 들린 카드 → 3 코드블록 순으로 한 칸씩 밝아진다. */
 	--bg-void: #050508;        /* 화면 바깥 / 인트로 암전 */
-	--bg: #0A0A0F;             /* 페이지 기본 */
-	--surface: #101017;        /* 카드 */
-	--surface-2: #16161F;      /* 카드 호버 / 안쪽 블록 */
-	--surface-3: #1D1D28;      /* 입력창, 코드블록 */
+	--bg: #0A0A0F;             /* 0 — 페이지 바탕 */
+	--surface: #101017;        /* 1 — 카드 */
+	--surface-2: #15151F;      /* 2 — 커서가 올라간 카드 */
+	--surface-3: #1C1C27;      /* 3 — 코드블록 · 입력창 */
 
 	/* --- 선 --- */
 	--border: #22222E;
 	--border-lit: #34343F;     /* 호버 시 살아나는 선 */
+	/* 면 위쪽에 닿는 1px 빛. 전등이 위에 있으므로 윗변만 밝다 */
+	--edge-hi: inset 0 1px 0 rgba(255, 255, 255, 0.055);
 
 	/* --- 글자 (괄호 안은 #0A0A0F 배경에서의 명도 대비) --- */
 	--text: #EDEBE6;           /* 16.6:1 — 따뜻한 오프화이트, 순백은 눈부심 */
@@ -64,7 +69,9 @@
 	--gap-section: clamp(2.5rem, 6vw, 4rem);
 
 	/* --- 간격 / 형태 --- */
-	--page: 1120px;
+	/* 2560px 화면에서 1120px 고정이면 가운데 절반만 쓰고 양옆이 텅 빈다.
+	   화면을 따라 넓어지되 한 줄이 너무 길어지지 않게 위를 막는다 */
+	--page: min(1760px, 94vw);
 	--gutter: clamp(1.25rem, 4vw, 2.5rem);
 	--r-sm: 10px;
 	--r-md: 16px;
@@ -91,9 +98,10 @@
 	--s-6: 32px;
 	--s-7: 48px;
 
-	/* --- 그림자 --- */
-	--shadow-lift: 0 18px 40px -22px rgba(0, 0, 0, 0.9);
-	--glow-lamp: 0 0 0 1px rgba(255, 180, 70, 0.28), 0 12px 40px -16px rgba(255, 180, 70, 0.4);
+	/* --- 그림자 ---
+	   거의 검은 바탕에서 검은 그림자는 안 보인다. 아주 얕게만 깔고,
+	   들어 올리는 일은 면 사다리(--surface-2)와 윗변 빛(--edge-hi)이 한다. */
+	--shadow-lift: 0 10px 28px -20px rgba(0, 0, 0, 0.85);
 }
 
 /* ===== 리셋 ===== */
@@ -126,7 +134,12 @@ body {
 	overflow-x: hidden;
 }
 
-/* 페이지 위쪽에서 내려오는 전등 빛 — 모든 페이지의 공통 분위기 */
+/* 전등 하나가 켜진 방 — 모든 페이지의 공통 바탕.
+   층이 셋이다.
+   · 원뿔  : 위에서 좁게 내려와 아래로 퍼지는 빛 (타원이 아니라 원뿔이라야 "매달린 전등"으로 읽힌다)
+   · 바닥빛: 아래쪽에 고이는 아주 옅은 반사
+   · 비네트: 네 귀퉁이를 눌러 화면을 무대처럼 가둔다
+   색은 전구색 하나뿐이다. 두 번째 광원(예전의 보라색)은 이유가 없어서 걷어냈다. */
 body::before {
 	content: '';
 	position: fixed;
@@ -134,8 +147,19 @@ body::before {
 	pointer-events: none;
 	z-index: 0;
 	background:
-		radial-gradient(120% 70% at 50% -18%, rgba(255, 180, 70, 0.14) 0%, rgba(255, 180, 70, 0.045) 38%, transparent 70%),
-		radial-gradient(90% 60% at 50% 120%, rgba(90, 80, 130, 0.09) 0%, transparent 65%);
+		/* 원뿔 */
+		radial-gradient(62% 78% at 50% -14%, rgba(255, 180, 70, 0.16) 0%, rgba(255, 176, 66, 0.06) 34%, transparent 68%),
+		/* 바닥에 고인 빛 */
+		radial-gradient(120% 38% at 50% 104%, rgba(255, 170, 60, 0.035) 0%, transparent 70%),
+		/* 비네트 */
+		radial-gradient(130% 100% at 50% 40%, transparent 52%, rgba(3, 3, 6, 0.55) 100%);
+	/* 전구는 완전히 가만히 있지 않는다. 8초에 한 번 숨 쉬듯 밝기가 흔들린다 */
+	animation: lamp-breathe 8.5s ease-in-out infinite;
+}
+
+@keyframes lamp-breathe {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.93; }
 }
 
 /* 아주 옅은 필름 그레인 — 어두운 화면의 밴딩을 감춰준다 */
@@ -145,7 +169,7 @@ body::after {
 	inset: -50%;
 	pointer-events: none;
 	z-index: 1;
-	opacity: 0.032;
+	opacity: 0.026;
 	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -154,7 +178,10 @@ body > * { position: relative; z-index: 2; }
 /* ===== 타이포 ===== */
 h1, h2, h3, h4 {
 	margin: 0 0 0.5em;
-	font-weight: 800;
+	/* 900/800 은 화면에 대고 소리 지르는 무게다. 어두운 바탕에서는 글자가 더 굵어 보이므로
+	   한 단계씩 내리고, 대신 자간을 좁혀 덩어리를 유지한다 (Linear 가 display 에 600 을 쓰는 이유) */
+	font-weight: 680;
+	font-optical-sizing: auto;
 	letter-spacing: -0.028em;
 	/* 한글은 받침 때문에 1.05 면 두 줄이 서로 닿는다 */
 	line-height: 1.28;
@@ -165,10 +192,10 @@ h1, h2, h3, h4 {
 }
 
 /* 큰 글씨일수록 자간을 좁히고 줄 간격을 붙인다 (시각 보정) */
-h1 { font-size: clamp(2.6rem, 7vw, 5rem); font-weight: 900; line-height: 1.1; letter-spacing: -0.04em; }
-h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); line-height: 1.2; letter-spacing: -0.032em; }
-h3 { font-size: var(--fs-lg); line-height: 1.35; letter-spacing: -0.022em; }
-h4 { font-size: var(--fs-md); line-height: 1.4; letter-spacing: -0.018em; }
+h1 { font-size: clamp(2.6rem, 7vw, 5rem); font-weight: 720; line-height: 1.1; letter-spacing: -0.042em; }
+h2 { font-size: clamp(1.7rem, 3.4vw, 2.4rem); font-weight: 690; line-height: 1.2; letter-spacing: -0.034em; }
+h3 { font-size: var(--fs-lg); font-weight: 640; line-height: 1.35; letter-spacing: -0.024em; }
+h4 { font-size: var(--fs-md); font-weight: 620; line-height: 1.4; letter-spacing: -0.018em; }
 
 p { margin: 0 0 1rem; }
 
@@ -216,6 +243,21 @@ time, .mono { font-variant-numeric: tabular-nums; }
 
 .accent { color: var(--lamp); }
 
+/* 화면에는 안 보이지만 스크린리더는 읽는다.
+   마크가 링크가 되면서 페이지마다 h1 이 하나씩 필요해졌는데,
+   홈과 블로그는 화면에 글자를 두지 않기로 했으므로 제목만 숨겨 둔다. */
+.sr-only {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	margin: -1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
 /* ===== 알약 — 이 사이트에서 누를 수 있는 것은 이 하나다 =====
    분류 고르개, "전체 보기", 글 아래 링크가 전부 같은 부품을 쓴다.
    비슷한 정의를 세 벌 두면 화면마다 높이와 색이 조금씩 어긋난다.
@@ -235,11 +277,14 @@ time, .mono { font-variant-numeric: tabular-nums; }
 	padding: 0 var(--s-4);
 	border: 1px solid var(--border);
 	border-radius: var(--r-full);
-	background: rgba(255, 255, 255, 0.03);
+	background: var(--surface);
+	box-shadow: var(--edge-hi);
 	color: var(--text-dim);
-	font-size: var(--fs-xs);
+	/* 글씨는 영문 모노다 — 날짜 · 개수와 같은 식구로 읽히고, 한글보다 알약에 잘 앉는다 */
+	font-family: var(--font-mono);
+	font-size: var(--fs-mono);
 	font-weight: 600;
-	letter-spacing: -0.01em;
+	letter-spacing: 0.08em;
 	white-space: nowrap;
 	cursor: pointer;
 	transition:
@@ -248,22 +293,34 @@ time, .mono { font-variant-numeric: tabular-nums; }
 		transform var(--t-tap) var(--ease-soft);
 }
 
+/* 커서가 오면 흰 물을 끼얹는 대신 면을 한 칸 올린다 */
 .pill:hover {
-	background: rgba(255, 255, 255, 0.075);
+	background: var(--surface-2);
+	border-color: var(--border-lit);
 	color: var(--text);
 }
 
 .pill:active { transform: translateY(1px); }
 
+/* 고른 것 = 전등이 그 위에 켜진 것. 평평한 한 색이고 글로우는 없다 */
 .pill.on {
 	background: var(--lamp);
 	border-color: var(--lamp);
+	box-shadow: none;
 	color: #21160A;
 }
 
 .pill.on:hover {
 	background: var(--lamp-soft);
+	border-color: var(--lamp-soft);
 	color: #21160A;
+}
+
+/* 누르는 동안엔 색이 한 단계 내려앉는다 (그림자 쪽 앰버) */
+.pill.on:active {
+	background: var(--lamp-deep);
+	border-color: var(--lamp-deep);
+	color: #1A1206;
 }
 
 /* 알약 안의 숫자 — 폭이 고정이라 개수가 바뀌어도 알약이 안 흔들린다 */
