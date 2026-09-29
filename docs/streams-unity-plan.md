@@ -256,10 +256,18 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 | 멀티 동시 접속 급증 | 방마다 DO 가 따로라 수평 확장됨. Lobby 만 병목 → 지역별로 나눔 |
 | D1 쓰기 폭증 | 이미 `waitUntil` 비동기 기록. 더 늘면 Queues 로 모아서 배치 쓰기 |
 
+## 정한 것
+
+- 2026-09-29 — **WebGL 먼저**, Unity 프로젝트는 **별도 리포** (`streams-unity`). 0단계 시작.
+
+## 진행
+
+- 0단계: API 계약 `docs/streams-api.md`, `x-streams-client` 헤더 + `streams_games.client` (migration 0003),
+  localhost CORS (`worker/streams/client.ts`), 규칙 정답지 `worker/streams/testdata/rules.json` (`worker/streams/vectors.ts`).
+
 ## 정해야 할 것
 
-- Unity 대상 플랫폼 순서 (WebGL 우선이 맞는지, 모바일 앱 출시 여부)
-- Unity 리포를 따로 둘지 (권장: 따로)
+- 모바일 앱 출시 여부
 - 멀티 최대 인원, 빈자리 AI 허용 여부, 턴 제한 시간
 - 실시간 대시보드를 공개 페이지로 둘지, 관리자 전용으로 둘지
 - 로그인을 도입할 시점

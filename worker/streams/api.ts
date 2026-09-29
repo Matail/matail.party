@@ -1,11 +1,13 @@
-// STREAMS API
+// STREAMS API — 계약 전체는 docs/streams-api.md
 //   POST /api/streams/start  { level, playerId? }          → { gameId, token, level, levelName, turn, card }
 //   POST /api/streams/move   { token, slot, thinkMs? }       → { token, aiSlot, turn, playerScore, aiScore, nextCard | finished }
+// 요청 헤더 x-streams-client (예: web/1, unity-webgl/0.1.0) 는 streams_games.client 에 남는다 (client.ts).
 // 게임 상태(덱 포함)는 암호화 토큰(state.ts)으로 클라이언트가 들고 다니고, 클라이언트는 지금 카드 한 장만 본다.
 // 응답을 먼저 보내고 D1 기록은 waitUntil 로 뒤에서 쓴다 — 수마다 DB 왕복을 기다리지 않는다.
 // 뒤에서 쓰는 기록은 순서가 뒤바뀌어도 되게: 턴 기록은 INSERT 만, 게임 결과는 끝날 때 한 번.
 
 import { LEVELS, PolicyNet, StreamsAI, type Level, type ManifestEntry } from "./ai.ts";
+import { clientOf } from "./client.ts";
 import { N, newDeck, score } from "./game.ts";
 import { open, seal, type GameState } from "./state.ts";
 
@@ -55,9 +57,9 @@ async function start(req: Request, env: Env, ctx: ExecutionContext) {
   const empty = JSON.stringify(state.pb);
   // token 컬럼은 서버 상태 방식일 때 쓰던 것 — 이제 비워 둔다
   background(ctx, env.DB.prepare(
-    `INSERT INTO streams_games (id, token, player_id, level, ai_model, deck, player_board, ai_board, created_at)
-     VALUES (?, '', ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(state.id, playerId, level, AI_MODEL, JSON.stringify(state.deck), empty, empty, new Date().toISOString()).run());
+    `INSERT INTO streams_games (id, token, player_id, level, ai_model, deck, player_board, ai_board, client, created_at)
+     VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).bind(state.id, playerId, level, AI_MODEL, JSON.stringify(state.deck), empty, empty, clientOf(req), new Date().toISOString()).run());
   return json({ gameId: state.id, token: await seal(state, env.STREAMS_KEY), level, levelName: LEVELS[level].name, turn: 0, card: state.deck[0] });
 }
 
