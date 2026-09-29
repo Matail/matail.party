@@ -16,10 +16,12 @@ let aiPromise: Promise<StreamsAI> | null = null;
 
 function loadAI(env: Env): Promise<StreamsAI> {
   aiPromise ??= (async () => {
+    // 가중치는 바뀌지 않으므로 엣지 캐시를 길게 (기본 60초면 새 isolate 마다 원본에서 다시 받음)
+    const cacheTtl = 86400;
     const [manifest, human, sgaz] = await Promise.all([
-      env.MODELS.get<Record<string, ManifestEntry[]>>("streams/manifest.json", "json"),
-      env.MODELS.get("streams/human_bc.bin", "arrayBuffer"),
-      env.MODELS.get("streams/sgaz_d.bin", "arrayBuffer"),
+      env.MODELS.get<Record<string, ManifestEntry[]>>("streams/manifest.json", { type: "json", cacheTtl }),
+      env.MODELS.get("streams/human_bc.bin", { type: "arrayBuffer", cacheTtl }),
+      env.MODELS.get("streams/sgaz_d.bin", { type: "arrayBuffer", cacheTtl }),
     ]);
     if (!manifest || !human || !sgaz) throw new Error("model files missing in KV");
     return new StreamsAI(new PolicyNet(human, manifest.human_bc), new PolicyNet(sgaz, manifest.sgaz_d));
@@ -61,7 +63,10 @@ async function move(req: Request, env: Env) {
   if (!Number.isInteger(slot) || slot < 0 || slot >= N || pb[slot] !== 0) return json({ error: "invalid slot" }, 400);
 
   const card = deck[g.turn];
-  const aiSlot = (await loadAI(env)).choose(ab, card, g.level);
+  const t0 = Date.now();
+  const ai = await loadAI(env);
+  const t1 = Date.now();
+  const aiSlot = ai.choose(ab, card, g.level);
   pb[slot] = card;
   ab[aiSlot] = card;
   const turn = g.turn + 1, finished = turn === N;
@@ -79,7 +84,10 @@ async function move(req: Request, env: Env) {
     "INSERT INTO streams_turns (game_id, turn, card, player_slot, ai_slot, think_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
   ).bind(body.gameId, g.turn, card, slot, aiSlot, thinkMs, now).run();
 
-  return json({ aiSlot, turn, playerScore: ps, aiScore: as, ...(finished ? { finished: true } : { nextCard: deck[turn] }) });
+  const res = json({ aiSlot, turn, playerScore: ps, aiScore: as, ...(finished ? { finished: true } : { nextCard: deck[turn] }) });
+  // 지연 원인 확인용 (Workers 에서 Date.now 는 I/O 사이에서만 흐르므로 모델 로드·DB 시간만 잡힌다)
+  res.headers.set("server-timing", `model;dur=${t1 - t0}, db;dur=${Date.now() - t1}`);
+  return res;
 }
 
 export async function handleStreams(req: Request, env: Env, path: string): Promise<Response> {
