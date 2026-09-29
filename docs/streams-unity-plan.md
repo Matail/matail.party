@@ -264,6 +264,8 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 
 - 0단계: API 계약 `docs/streams-api.md`, `x-streams-client` 헤더 + `streams_games.client` (migration 0003),
   localhost CORS (`worker/streams/client.ts`), 규칙 정답지 `worker/streams/testdata/rules.json` (`worker/streams/vectors.ts`).
+- 1단계 시작: 리포 [Matail/streams-unity](https://github.com/Matail/streams-unity) — C# 규칙(정답지 609개 일치),
+  `IGameSession`/`AiSession`, 코드로 만든 UGUI 화면, WebGL 빌드 메뉴. 남은 것: 에디터 실행 확인, 사이트에 WebGL 올리기.
 
 ## 정해야 할 것
 
