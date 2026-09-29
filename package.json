@@ -15,5 +15,8 @@
     "animejs": "^4.5.0",
     "astro": "^6.3.3",
     "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "wrangler": "^4.143.0"
   }
 }

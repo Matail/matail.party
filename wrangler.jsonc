@@ -3,14 +3,25 @@
 	// 이 파일이 없으면 `wrangler deploy` 가 진입점을 못 찾아 대화형 자동설정으로 빠지고,
 	// CI 에서는 그게 실패한다 (Missing entry-point to Worker script or to assets directory).
 	//
-	// 이 사이트는 astro build 결과가 전부 정적 파일이므로(7페이지 전부 prerender)
-	// 서버 코드 없이 dist/ 를 그대로 서빙하는 assets 전용 Worker 로 올린다.
+	// 사이트는 astro build 결과(dist/)를 정적 파일로 서빙한다.
+	// /api/* 요청만 Worker 코드(worker/index.ts)가 먼저 받는다 — STREAMS 게임 API.
 	"name": "my-site",
+	"main": "worker/index.ts",
 	"compatibility_date": "2026-09-20",
 	"assets": {
 		"directory": "./dist",
-		"not_found_handling": "404-page"
+		"binding": "ASSETS",
+		"not_found_handling": "404-page",
+		"run_worker_first": ["/api/*"]
 	},
+	// STREAMS 플레이 기록 (비공개). 스키마: migrations/
+	"d1_databases": [
+		{ "binding": "DB", "database_name": "streams-records", "database_id": "eeda2e62-917f-4c23-958e-56e202cfd302", "migrations_dir": "migrations" }
+	],
+	// STREAMS AI 가중치 (비공개, 리포에 넣지 않음). 키: streams/human_bc.bin, streams/sgaz_d.bin, streams/manifest.json
+	"kv_namespaces": [
+		{ "binding": "MODELS", "id": "b55048675931487b91162e41b0704667" }
+	],
 	"observability": {
 		"enabled": true
 	}

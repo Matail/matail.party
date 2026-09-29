@@ -26,3 +26,6 @@ pnpm-debug.log*
 # python cache (tools/)
 __pycache__/
 *.pyc
+
+# wrangler 로컬 개발 상태 (로컬 D1·KV — 모델 가중치 포함, 커밋 금지)
+.wrangler/

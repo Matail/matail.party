@@ -1,0 +1,65 @@
+---
+// STREAMS 게임 페이지. 스타일과 스크립트는 public/games/streams/ 에서 가져옴.
+// 덱과 AI는 서버(worker/streams/)에 있고, 이 페이지는 카드 한 장씩만 받는다.
+---
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>STREAMS · my-site</title>
+	<link rel="stylesheet" href="/games/streams/style.css">
+	<link rel="preconnect" href="https://cdn.jsdelivr.net">
+	<link rel="stylesheet" as="style"
+		href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+</head>
+<body>
+	<a href="/" class="back-link">← 홈으로</a>
+
+	<main class="table">
+		<header class="hud">
+			<div class="stat"><span class="stat-label">TURN</span><span class="stat-value" id="turn">1 / 20</span></div>
+			<div class="stat"><span class="stat-label">YOU</span><span class="stat-value" id="my-score">0</span></div>
+			<div class="stat"><span class="stat-label">AI</span><span class="stat-value" id="ai-score">0</span></div>
+			<div class="stat"><span class="stat-label">LEVEL</span><span class="stat-value" id="level-name">-</span></div>
+		</header>
+
+		<section class="card-zone">
+			<span class="card-label">이번 카드</span>
+			<div class="card" id="card">?</div>
+			<p class="hint" id="hint">내 보드의 빈칸을 눌러 놓으세요</p>
+		</section>
+
+		<section class="board-wrap">
+			<h2 class="board-title">내 보드</h2>
+			<div class="board" id="my-board"></div>
+			<h2 class="board-title">AI 보드</h2>
+			<div class="board board-ai" id="ai-board"></div>
+		</section>
+
+		<div class="overlay" id="start-screen">
+			<h1>STREAMS</h1>
+			<p class="rules">
+				카드 20장이 한 장씩 나옵니다. 20칸 중 원하는 곳에 놓으세요.<br>
+				왼쪽부터 작거나 같은 숫자로 길게 이어질수록 점수가 커집니다 (20칸 전부 이으면 300점).<br>
+				AI도 같은 카드를 받아 자기 보드에 놓습니다. AI는 앞으로 나올 카드를 모릅니다.
+			</p>
+			<div class="levels" id="levels"></div>
+			<p class="notice">플레이 기록(카드 배치와 걸린 시간)은 AI 연구를 위해 익명으로 저장됩니다.</p>
+			<p class="error" id="start-error" hidden></p>
+		</div>
+
+		<div class="overlay hidden" id="end-screen">
+			<h1 id="result-title">-</h1>
+			<p class="final" id="final-score"></p>
+			<div class="end-buttons">
+				<button class="btn" id="again-btn">한 판 더</button>
+				<button class="btn btn-ghost" id="level-btn">난이도 바꾸기</button>
+			</div>
+		</div>
+	</main>
+
+	<script is:inline src="/games/streams/script.js"></script>
+</body>
+</html>
