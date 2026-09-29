@@ -28,7 +28,7 @@ function playerId() {
 async function post(path, body) {
 	const res = await fetch(API + path, {
 		method: 'POST',
-		headers: { 'content-type': 'application/json' },
+		headers: { 'content-type': 'application/json', 'x-streams-client': 'web/1' },
 		body: JSON.stringify(body),
 	});
 	const data = await res.json().catch(() => ({}));
