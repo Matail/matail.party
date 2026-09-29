@@ -9,7 +9,7 @@ const LEVELS = [
 const API = '/api/streams';
 const $ = (id) => document.getElementById(id);
 
-let game = null;      // { gameId, token, level, levelName, card, turn }
+let game = null;      // { gameId, token(암호화된 게임 상태), level, levelName, card, turn }
 let myBoard, aiBoard, busy = false, cardShownAt = 0, lastAi = -1;
 
 function playerId() {
@@ -89,9 +89,10 @@ async function place(slot) {
 	render();
 	try {
 		const r = await post('/move', {
-			gameId: game.gameId, token: game.token, slot,
+			token: game.token, slot,
 			thinkMs: Math.round(performance.now() - cardShownAt),
 		});
+		game.token = r.token;   // 게임 상태는 서버가 암호화한 토큰으로 들고 다닌다
 		aiBoard[r.aiSlot] = card;
 		lastAi = r.aiSlot;
 		game.turn = r.turn;

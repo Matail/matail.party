@@ -6,11 +6,11 @@ interface Env extends StreamsEnv {
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const path = new URL(req.url).pathname;
     if (path.startsWith("/api/streams/")) {
       try {
-        return await handleStreams(req, env, path);
+        return await handleStreams(req, env, ctx, path);
       } catch (e) {
         console.error(e);
         return new Response(JSON.stringify({ error: "server error" }), { status: 500, headers: { "content-type": "application/json" } });
