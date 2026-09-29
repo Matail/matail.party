@@ -73,16 +73,22 @@ async function move(req: Request, env: Env) {
   const ps = score(pb), as = score(ab), now = new Date().toISOString();
   const thinkMs = Number.isFinite(body.thinkMs) ? Math.max(0, Math.round(body.thinkMs!)) : null;
 
-  // turn 조건으로 동시에 들어온 같은 수를 막는다
-  const upd = await env.DB.prepare(
-    `UPDATE streams_games SET player_board = ?, ai_board = ?, turn = ?, status = ?,
-       player_score = ?, ai_score = ?, finished_at = ? WHERE id = ? AND turn = ?`,
-  ).bind(JSON.stringify(pb), JSON.stringify(ab), turn, finished ? "finished" : "playing",
-    ps, as, finished ? now : null, body.gameId, g.turn).run();
-  if (!upd.meta.changes) return json({ error: "conflict" }, 409);
-  await env.DB.prepare(
-    "INSERT INTO streams_turns (game_id, turn, card, player_slot, ai_slot, think_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-  ).bind(body.gameId, g.turn, card, slot, aiSlot, thinkMs, now).run();
+  // 한 번의 왕복(batch, 트랜잭션)으로 쓴다. turn 조건으로 동시에 들어온 같은 수를 막고,
+  // 같은 (game_id, turn) 턴 기록이 이미 있으면 INSERT 가 실패해 batch 전체가 되돌려진다.
+  try {
+    await env.DB.batch([
+      env.DB.prepare(
+        `UPDATE streams_games SET player_board = ?, ai_board = ?, turn = ?, status = ?,
+           player_score = ?, ai_score = ?, finished_at = ? WHERE id = ? AND turn = ?`,
+      ).bind(JSON.stringify(pb), JSON.stringify(ab), turn, finished ? "finished" : "playing",
+        ps, as, finished ? now : null, body.gameId, g.turn),
+      env.DB.prepare(
+        "INSERT INTO streams_turns (game_id, turn, card, player_slot, ai_slot, think_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      ).bind(body.gameId, g.turn, card, slot, aiSlot, thinkMs, now),
+    ]);
+  } catch {
+    return json({ error: "conflict" }, 409);
+  }
 
   const res = json({ aiSlot, turn, playerScore: ps, aiScore: as, ...(finished ? { finished: true } : { nextCard: deck[turn] }) });
   // 지연 원인 확인용 (Workers 에서 Date.now 는 I/O 사이에서만 흐르므로 모델 로드·DB 시간만 잡힌다)

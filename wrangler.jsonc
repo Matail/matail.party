@@ -22,6 +22,8 @@
 	"kv_namespaces": [
 		{ "binding": "MODELS", "id": "b55048675931487b91162e41b0704667" }
 	],
+	// 요청이 먼 데이터센터(예: DFW)로 가도 D1(ICN) 가까이에서 Worker 를 돌리도록
+	"placement": { "mode": "smart" },
 	"observability": {
 		"enabled": true
 	}
