@@ -378,9 +378,16 @@ const cards = games.map((game, i) => {
 	/* 움직이는 키아트.
 	   프레임을 <img> 여러 장으로 겹치지 않고 시트 한 장의 background-position 으로 넘긴다 —
 	   레이아웃도 합성도 건드리지 않아서 3D 로 기울어진 채로도 값이 싸다. */
+	/* 프레임 한 장의 비율(키아트는 모두 256×160 = 16:10)을 지킨 채 카드를 덮는다 — <img> 의 object-fit: cover 와 같다.
+	   inset: 0 으로 카드에 맞춰 늘리면 좁은 화면의 세로 카드(4:5)에서 그림이 위아래로 늘어난다. */
 	.gcard-film {
 		position: absolute;
-		inset: 0;
+		top: 50%;
+		left: 50%;
+		height: 100%;
+		min-width: 100%;
+		aspect-ratio: 16 / 10;
+		transform: translate(-50%, -50%);
 		background-repeat: no-repeat;
 		background-size: calc(var(--n) * 100%) 100%;
 		background-position-x: 0%;
