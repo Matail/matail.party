@@ -13,6 +13,8 @@ interface Props {
 	intro?: boolean;
 	/** 본문 폭 — 글 읽는 페이지는 narrow */
 	width?: 'wide' | 'narrow';
+	/** 링크 공유·검색 미리보기 그림 (public 기준 경로, 1200×630) */
+	image?: string;
 	/** 한 화면에 딱 맞춘다 (홈). 스크롤이 없다 */
 	fit?: boolean;
 	/** 이 페이지가 자기 머리(제목·알약 줄)를 갖는가. 홈은 마크와 내용뿐이라 false */
@@ -24,10 +26,14 @@ const {
 	description = '한 명이 만드는 작은 게임 스튜디오. 브라우저에서 바로 즐길 수 있는 게임을 만들고, 만드는 과정을 기록합니다.',
 	intro = false,
 	width = 'wide',
+	image = '/og/site.png',
 	fit = false,
 	head = true,
 } = Astro.props;
 
+// 대표 주소와 미리보기 그림은 절대 주소여야 한다 (astro.config 의 site)
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL(image, Astro.site);
 ---
 
 <!doctype html>
@@ -39,9 +45,16 @@ const {
 		<meta name="description" content={description} />
 		<meta name="theme-color" content="#0A0A0F" />
 
+		<link rel="canonical" href={canonical} />
 		<meta property="og:type" content="website" />
+		<meta property="og:site_name" content="my-site" />
+		<meta property="og:locale" content="ko_KR" />
 		<meta property="og:title" content={title} />
 		<meta property="og:description" content={description} />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:image:width" content="1200" />
+		<meta property="og:image:height" content="630" />
 		<meta name="twitter:card" content="summary_large_image" />
 
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
