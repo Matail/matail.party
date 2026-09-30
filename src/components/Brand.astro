@@ -2,8 +2,9 @@
 /* 이 사이트의 마크. 모든 페이지 맨 위 가운데에 같은 모습으로 선다.
    바뀌는 건 아래 내용뿐이고, 이 줄과 전구는 페이지가 넘어가도 그대로다.
 
-   구성은 전구 하나와 이름 하나뿐이다.
-   줄은 화면 맨 위에서 내려오고, 그 끝에 전구가 달리고, 아래에 이름이 온다.
+   구성은 로고(public/brand/) 하나와 이름 하나뿐이다.
+   줄은 화면 맨 위에서 내려오고, 그 끝에 전구가 달린다. 전구는 M 이자 마티니 잔인 선 안에 들어가
+   잔 속 올리브가 되고, 아래에 이름이 온다 (Matail — '맛있는칵테일').
    배경의 빛도 같은 자리(화면 위 가운데)에서 떨어지므로 — 마크가 곧 이 페이지의 광원이다.
 
    어느 페이지에서나 똑같은 홈 링크다. 모양도 태그도 같아야 페이지를 넘어갈 때
@@ -22,16 +23,20 @@ const { persist = true } = Astro.props;
 <a
 	class="brand tap"
 	href="/"
-	aria-label="my-site 홈으로"
+	aria-label="Matail 홈으로"
 	data-astro-transition-persist={persist ? 'brand' : undefined}
 	data-reveal
 	style="--reveal-delay: 60"
 >
 	<span class="lamp" aria-hidden="true">
 		<span class="cord"></span>
+		<!-- public/brand/matail-mark.svg 의 선 부분. 줄과 전구는 CSS 로 따로 그려 숨 쉬게 한다 -->
+		<svg class="glass" viewBox="8 10 48 44" fill="none" stroke="currentColor" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round">
+			<path d="M11 50V13L32 37L53 13V50M32 37V51M24 51H40" />
+		</svg>
 		<span class="bulb"></span>
 	</span>
-	<span class="word">my<span class="dot">·</span>site</span>
+	<span class="word">Matail</span>
 </a>
 
 <style>
@@ -45,32 +50,47 @@ const { persist = true } = Astro.props;
 		color: var(--text);
 	}
 
-	/* --- 매달린 전구 --- */
+	/* --- 매달린 전구 + 잔 ---
+	   잔 그림(viewBox 48x44)에서 전구 자리는 가로 가운데, 위에서 14/44 지점이다. */
 	.lamp {
+		--cord: clamp(20px, 4.2vh, 42px); /* 줄 길이는 화면 높이를 따라간다. 낮은 화면에서는 짧게 매달린다 */
+		--glass-w: clamp(34px, 3.4vw, 42px);
+		--glass-h: calc(var(--glass-w) * 44 / 48);
+		--bulb-y: calc(var(--cord) + var(--glass-h) * 14 / 44);
 		position: relative;
-		width: 12px;
-		/* 줄 길이는 화면 높이를 따라간다. 낮은 화면에서는 짧게 매달린다 */
-		height: clamp(26px, 5.5vh, 54px);
+		width: var(--glass-w);
+		height: calc(var(--cord) + var(--glass-h));
 	}
 
 	.cord {
 		position: absolute;
 		top: 0;
-		bottom: 10px;
+		height: var(--bulb-y);
 		left: 50%;
 		width: 1px;
 		transform: translateX(-50%);
 		background: linear-gradient(180deg, transparent, var(--border-lit) 40%, var(--lamp-deep));
 	}
 
-	.bulb {
+	.glass {
 		position: absolute;
 		bottom: 0;
+		left: 0;
+		width: 100%;
+		height: var(--glass-h);
+		color: var(--text);
+		transition: color var(--t-fast) var(--ease-soft);
+	}
+
+	.bulb {
+		position: absolute;
+		top: var(--bulb-y);
 		left: 50%;
-		width: 11px;
-		height: 11px;
+		/* 로고의 올리브 지름(10/48) */
+		width: calc(var(--glass-w) * 10 / 48);
+		aspect-ratio: 1;
 		border-radius: 50%;
-		transform: translateX(-50%);
+		transform: translate(-50%, -50%);
 		/* 유리알 — 왼쪽 위에 하이라이트가 하나 */
 		background: radial-gradient(circle at 36% 32%, #FFE9C6, var(--lamp) 56%, #DE8F22);
 		box-shadow:
@@ -83,8 +103,7 @@ const { persist = true } = Astro.props;
 
 	/* --- 이름 ---
 	   이 사이트를 위해 만든 픽셀 폰트(Studio Marquee)로 찍는다. 라틴만 있는 폰트인데
-	   이름이 라틴이라 마침 들어맞는다. 가운데 점은 폰트에 없어서 본문 글꼴로 떨어지고,
-	   그 자리만 전구색이다. */
+	   이름이 라틴이라 마침 들어맞는다. */
 	.word {
 		font-family: 'Studio Marquee', var(--font-sans);
 		font-size: clamp(1.4rem, 2.9vw, 2.05rem);
@@ -92,11 +111,6 @@ const { persist = true } = Astro.props;
 		letter-spacing: 0.02em;
 		color: var(--text);
 		transition: color var(--t-fast) var(--ease-soft);
-	}
-
-	.dot {
-		font-family: var(--font-sans);
-		color: var(--lamp);
 	}
 
 	/* 홈이 아닌 페이지에서는 누를 수 있다 — 커서를 올리면 불이 조금 더 밝아진다 */
@@ -112,7 +126,8 @@ const { persist = true } = Astro.props;
 			0 0 44px 14px rgba(255, 180, 70, 0.22);
 	}
 
-	.brand.tap:hover .word {
+	.brand.tap:hover .word,
+	.brand.tap:hover .glass {
 		color: var(--lamp-soft);
 	}
 
