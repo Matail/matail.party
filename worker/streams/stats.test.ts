@@ -40,6 +40,15 @@ assert.equal(view.playing, 1);
 assert.equal("active" in view || "marks" in view || "recent" in view || "clients" in view, false);
 assert.equal(JSON.stringify(view).includes("g3"), false);
 assert.equal(publicView(s, t0 + 31 * 60_000).playing, 0); // 30분 넘은 판은 빠진다
+assert.deepEqual(view.cards, ["tiles", "funnel", "bins", "radar", "gauge", "heat"]); // 기본은 전부
+
+// 관리자가 끈 카드의 값은 공개 응답에서도 빠진다 (다른 켜진 카드가 쓰는 값은 남는다)
+const some = publicView(s, t0, ["radar", "heat"]);
+assert.deepEqual(some.cards, ["radar", "heat"]);
+assert.ok(some.levels && some.heat);
+assert.equal("bins" in some || "won" in some || "playing" in some || "started" in some || "best" in some, false);
+const none = publicView(s, t0, []);
+assert.deepEqual(Object.keys(none).sort(), ["cards", "day", "updatedAt"]);
 
 // 날짜가 바뀌면 "오늘" 이 비워진다
 applyStarted(s, "g4", Date.parse("2026-09-30T16:00:00Z"));

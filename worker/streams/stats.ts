@@ -34,7 +34,19 @@ export interface Stats {
   marks: string[];                 // 이미 센 첫 수·결과 ("f:<id>" · "e:<id>") — 옛 토큰으로 다시 보낸 수를 두 번 세지 않게 (밖으로 내보내지 않음)
 }
 
-export type PublicStats = Omit<Stats, "active" | "marks"> & { playing: number; updatedAt: number };
+export type PublicStats = Partial<Omit<Stats, "active" | "marks">> & { day: string; playing?: number; updatedAt: number; cards: PublicCard[] };
+
+/** 공개 통계 페이지의 카드와 각 카드가 쓰는 값. 관리자 설정 streams/public_cards 로 켜고 끈다 */
+export const PUBLIC_CARDS = {
+  tiles: ["playing", "todayFinished", "todayBest", "finished"],
+  funnel: ["started", "finished", "won"],
+  bins: ["bins", "levels", "finished"],
+  radar: ["levels"],
+  gauge: ["won", "drawn", "finished"],
+  heat: ["heat"],
+} as const;
+export type PublicCard = keyof typeof PUBLIC_CARDS;
+export const ALL_CARDS = Object.keys(PUBLIC_CARDS) as PublicCard[];
 
 export const dayOf = (ms: number) => new Date(ms + DAY_OFFSET_MS).toISOString().slice(0, 10);
 
@@ -108,11 +120,13 @@ export function applyFinished(s: Stats, g: Finished, now: number) {
   delete s.active[g.id];
 }
 
-/** 밖으로 내보내는 모양: 진행 중 판 id 대신 개수만 */
-export function publicView(s: Stats, now: number): PublicStats {
+/** 밖으로 내보내는 모양: 진행 중 판 id 대신 개수만, 켜진 카드가 쓰는 값만 */
+export function publicView(s: Stats, now: number, cards: readonly PublicCard[] = ALL_CARDS): PublicStats {
   for (const [id, t] of Object.entries(s.active)) if (now - t > ACTIVE_MS) delete s.active[id];
-  const { active, marks, ...rest } = s;
-  return { ...rest, playing: Object.keys(active).length, updatedAt: now };
+  const all: Record<string, unknown> = { ...s, playing: Object.keys(s.active).length };
+  const out: Record<string, unknown> = { day: s.day, updatedAt: now, cards: [...cards] };
+  for (const c of cards) for (const k of PUBLIC_CARDS[c] ?? []) out[k] = all[k];
+  return out as PublicStats;
 }
 
 /** D1 원본에서 처음부터 다시 센다 (DO 가 처음 뜨거나 저장된 집계가 없을 때) */

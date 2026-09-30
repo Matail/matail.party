@@ -4,10 +4,11 @@
 
 interface LevelAgg { games: number; won: number; drawn: number; me: number; ai: number }
 interface Stats {
-  started: number; finished: number; won: number; drawn: number; best: number;
-  todayStarted: number; todayFinished: number; todayBest: number;
+  started: number; finished: number; won: number; drawn: number;
+  todayFinished: number; todayBest: number;
   levels: LevelAgg[]; bins: number[]; heat: number[];
   playing: number; updatedAt: number;
+  cards?: string[]; // 관리자가 공개로 둔 카드. 꺼진 카드의 값은 오지 않는다
 }
 
 const LEVEL_NAMES = ['입문', '보통', '숙련', '고수', '마스터'];
@@ -161,30 +162,43 @@ function heat(s: Stats) {
 function render(root: HTMLElement, s: Stats) {
   const set = (k: string, v: string) => root.querySelectorAll(`[data-v="${k}"]`).forEach((e) => (e.textContent = v));
   const put = (sel: string, html: string) => { const e = root.querySelector(sel); if (e) e.innerHTML = html; };
-  const meSum = s.levels.reduce((a, l) => a + l.me, 0);
+  const on = (card: string) => !s.cards || s.cards.includes(card);
+  root.querySelectorAll<HTMLElement>('[data-card]').forEach((e) => (e.hidden = !on(e.dataset.card!)));
 
-  set('playing', fmt(s.playing));
-  set('todayFinished', fmt(s.todayFinished));
-  set('todayBest', s.todayFinished ? fmt(s.todayBest) : '–');
-  set('finished', fmt(s.finished));
-  set('started', fmt(s.started));
-  set('finishRate', s.started ? `${pct(s.finished, s.started)}% 완주` : '');
-  set('avg', s.finished ? (meSum / s.finished).toFixed(1) : '–');
-  set('levelsPlayed', String(s.levels.filter((l) => l.games > 0).length));
-  set('winRate', String(pct(s.won, s.finished)));
-  set('firstMoves', fmt(s.heat.reduce((a, b) => a + b, 0)));
-
-  put('[data-chart="funnel"]', funnel(s));
-  put('[data-stats="funnel"]', [['시작', s.started, FUNNEL[0]], ['끝까지', s.finished, FUNNEL[1]], ['AI 를 이김', s.won, FUNNEL[2]]]
-    .map(([t, v, c]) => `<div class="st"><i style="background:${c}"></i>${t}<b>${fmt(v as number)}</b></div>`).join(''));
-  put('[data-chart="bins"]', bins(s));
-  put('[data-chart="radar"]', radar(s));
-  put('[data-stats="levels"]', s.levels.map((l, i) =>
-    `<div class="st">${LEVEL_NAMES[i]}<b>${l.games ? `${pct(l.won, l.games)}%` : '–'}</b></div>`).join(''));
-  put('[data-chart="gauge"]', gauge(s));
-  put('[data-stats="gauge"]', [['사람 승', s.won, C.you], ['무승부', s.drawn, C.draw], ['AI 승', s.finished - s.won - s.drawn, C.ai]]
-    .map(([t, v, c]) => `<div class="st"><i style="background:${c}"></i>${t}<b>${fmt(v as number)}</b></div>`).join(''));
-  put('[data-chart="heat"]', heat(s));
+  if (on('tiles')) {
+    set('playing', fmt(s.playing));
+    set('todayFinished', fmt(s.todayFinished));
+    set('todayBest', s.todayFinished ? fmt(s.todayBest) : '–');
+    set('finished', fmt(s.finished));
+  }
+  if (on('funnel')) {
+    set('started', fmt(s.started));
+    set('finishRate', s.started ? `${pct(s.finished, s.started)}% 완주` : '');
+    put('[data-chart="funnel"]', funnel(s));
+    put('[data-stats="funnel"]', [['시작', s.started, FUNNEL[0]], ['끝까지', s.finished, FUNNEL[1]], ['AI 를 이김', s.won, FUNNEL[2]]]
+      .map(([t, v, c]) => `<div class="st"><i style="background:${c}"></i>${t}<b>${fmt(v as number)}</b></div>`).join(''));
+  }
+  if (on('bins')) {
+    const meSum = s.levels.reduce((a, l) => a + l.me, 0);
+    set('avg', s.finished ? (meSum / s.finished).toFixed(1) : '–');
+    put('[data-chart="bins"]', bins(s));
+  }
+  if (on('radar')) {
+    set('levelsPlayed', String(s.levels.filter((l) => l.games > 0).length));
+    put('[data-chart="radar"]', radar(s));
+    put('[data-stats="levels"]', s.levels.map((l, i) =>
+      `<div class="st">${LEVEL_NAMES[i]}<b>${l.games ? `${pct(l.won, l.games)}%` : '–'}</b></div>`).join(''));
+  }
+  if (on('gauge')) {
+    set('winRate', String(pct(s.won, s.finished)));
+    put('[data-chart="gauge"]', gauge(s));
+    put('[data-stats="gauge"]', [['사람 승', s.won, C.you], ['무승부', s.drawn, C.draw], ['AI 승', s.finished - s.won - s.drawn, C.ai]]
+      .map(([t, v, c]) => `<div class="st"><i style="background:${c}"></i>${t}<b>${fmt(v as number)}</b></div>`).join(''));
+  }
+  if (on('heat')) {
+    set('firstMoves', fmt(s.heat.reduce((a, b) => a + b, 0)));
+    put('[data-chart="heat"]', heat(s));
+  }
 }
 
 // ── 연결 ─────────────────────────────────────────────────────────
