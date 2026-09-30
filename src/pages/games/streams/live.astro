@@ -1,0 +1,188 @@
+---
+/* STREAMS 실시간 통계 (docs/streams-unity-plan.md 3단계).
+   집계는 Worker 의 Durable Object StatsHub 에 있고, 이 페이지는 웹소켓(/api/streams/live)으로 받아 그리기만 한다.
+   웹소켓이 안 되면 /api/streams/stats 를 5초마다 받는다. 익명 집계만 보여 준다.
+   카드 모양은 "Charts that make your data worth reading" 레퍼런스: 라벨 · 큰 숫자 · 차트 · 수치 칸 · 설명. */
+import Layout from '../../../layouts/Layout.astro';
+---
+
+<Layout
+	title="STREAMS 실시간 · my-site"
+	description="The STREAMS+ 에서 사람들이 지금 어떻게 두고 있는지 — 판 흐름, 점수 분포, 난이도별 승률, 첫 카드 자리."
+	width="wide"
+>
+	<div class="live" data-live>
+		<header class="hero">
+			<span class="kicker"><span class="dot" data-conn-dot></span><span data-conn>연결하는 중…</span></span>
+			<h1>지금 사람들은<br />이렇게 두고 있어요</h1>
+			<p class="lead">The STREAMS+ 의 판이 끝날 때마다 이 화면이 바로 바뀝니다. 익명으로 모은 숫자만 보여 줘요.</p>
+			<div class="actions">
+				<a class="btn primary" href="/games/streams-unity/">The STREAMS+ 하러 가기</a>
+			</div>
+		</header>
+
+		<section class="tiles" aria-label="요약">
+			<div class="tile"><span class="t-label">지금 두는 중</span><span class="t-value" data-v="playing">–</span></div>
+			<div class="tile"><span class="t-label">오늘 끝난 판</span><span class="t-value" data-v="todayFinished">–</span></div>
+			<div class="tile"><span class="t-label">오늘 최고 점수</span><span class="t-value" data-v="todayBest">–</span></div>
+			<div class="tile"><span class="t-label">지금까지 끝난 판</span><span class="t-value" data-v="finished">–</span></div>
+		</section>
+
+		<section class="grid">
+			<article class="card">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">판 흐름</span></div>
+					<div class="p-value"><span data-v="started">–</span><span class="delta" data-v="finishRate"></span></div>
+					<div class="chart" data-chart="funnel" role="img" aria-label="시작한 판, 끝까지 둔 판, AI 를 이긴 판"></div>
+					<div class="stats" data-stats="funnel"></div>
+				</div>
+				<h2>시작 → 끝까지 → AI 를 이김</h2>
+				<p>시작한 판 중 20장을 다 둔 판, 그중 AI 보다 점수가 높았던 판. 알약은 시작한 판 대비 비율.</p>
+			</article>
+
+			<article class="card">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">사람 점수 분포</span></div>
+					<div class="p-value"><span data-v="avg">–</span><span class="unit">점 평균</span></div>
+					<div class="chart" data-chart="bins" role="img" aria-label="사람 점수 분포 막대"></div>
+				</div>
+				<h2>점수 분포</h2>
+				<p>끝난 판의 사람 점수를 10점 단위로 나눴어요. 막대에 올리면 판 수가 보여요.</p>
+			</article>
+
+			<article class="card">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">난이도별 평균 점수</span></div>
+					<div class="p-value"><span data-v="levelsPlayed">–</span><span class="unit">개 난이도에서 둠</span></div>
+					<div class="chart" data-chart="radar" role="img" aria-label="난이도별 사람과 AI 평균 점수"></div>
+					<div class="legend">
+						<span><i class="sw you"></i>사람</span><span><i class="sw ai"></i>AI</span>
+					</div>
+					<div class="stats" data-stats="levels"></div>
+				</div>
+				<h2>사람 vs AI</h2>
+				<p>꼭짓점이 난이도예요. 파란 선(사람)이 빨간 선(AI)보다 바깥이면 그 난이도에선 사람이 앞서요. 칸은 사람 승률.</p>
+			</article>
+
+			<article class="card">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">사람이 이긴 비율</span></div>
+					<div class="p-value"><span data-v="winRate">–</span><span class="unit">%</span></div>
+					<div class="chart" data-chart="gauge" role="img" aria-label="사람 승, 무, 패 비율"></div>
+					<div class="stats" data-stats="gauge"></div>
+				</div>
+				<h2>승 · 무 · 패</h2>
+				<p>끝난 모든 판에서 사람 기준 결과. 가운데 숫자가 사람 승률이에요.</p>
+			</article>
+
+			<article class="card wide">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">첫 카드는 어디에</span></div>
+					<div class="p-value"><span data-v="firstMoves">–</span><span class="unit">번의 첫 수</span></div>
+					<div class="chart" data-chart="heat" role="img" aria-label="첫 카드 숫자별로 놓은 칸 히트맵"></div>
+					<div class="scale"><span>적음</span><i></i><span>많음</span></div>
+				</div>
+				<h2>첫 카드 자리</h2>
+				<p>가로는 보드 칸(왼쪽 1 → 오른쪽 20), 세로는 첫 카드 숫자(1 → 30). 작은 숫자는 왼쪽, 큰 숫자는 오른쪽에 두는 사람이 많을수록 대각선이 진해져요.</p>
+			</article>
+
+		</section>
+
+		<div class="tip" data-tip hidden></div>
+	</div>
+</Layout>
+
+<style>
+	/* 레퍼런스처럼 차가운 회색 카드 위에 데이터 색만 얹는다. 색 역할은 dataviz 검증을 통과한 값 */
+	.live {
+		--card: #111116;
+		--panel: #16161c;
+		--line: rgba(255, 255, 255, 0.07);
+		--ink: #edebe6;
+		--ink-2: #a7a5ae;
+		--ink-3: #7c7a84;
+		--you: #3987e5;
+		--ai: #e66767;
+		--teal: #22ab9b;
+		--draw: #6b6a73;
+		padding-bottom: 4rem;
+	}
+
+	.hero { text-align: center; padding: clamp(2rem, 6vw, 4rem) 0 2rem; }
+	.kicker {
+		display: inline-flex; align-items: center; gap: 8px;
+		padding: 5px 12px; border-radius: 999px;
+		background: var(--panel); border: 1px solid var(--line);
+		font-size: 0.8rem; color: var(--ink-2);
+	}
+	.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ink-3); }
+	.dot.on { background: var(--teal); box-shadow: 0 0 10px var(--teal); animation: pulse 2s ease-in-out infinite; }
+	@keyframes pulse { 50% { opacity: 0.45; } }
+	@media (prefers-reduced-motion: reduce) { .dot.on { animation: none; } }
+	.hero h1 { margin: 1rem 0 0.8rem; font-size: clamp(2rem, 5vw, 3.2rem); }
+	.lead { color: var(--ink-2); max-width: 34rem; margin: 0 auto 1.4rem; }
+	.btn {
+		display: inline-flex; align-items: center; padding: 0.55rem 1rem; border-radius: 10px;
+		font-size: 0.9rem; font-weight: 600; border: 1px solid var(--line); color: var(--ink);
+	}
+	.btn.primary { background: var(--teal); border-color: transparent; color: #04120f; }
+	.btn.primary:hover { color: #04120f; filter: brightness(1.1); }
+
+	.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0 auto 16px; max-width: 960px; }
+	.tile {
+		display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px;
+		background: var(--card); border: 1px solid var(--line);
+	}
+	.t-label { font-size: 0.8rem; color: var(--ink-2); }
+	.t-value { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+	.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 960px; margin: 0 auto; }
+	.card { padding: 12px 12px 18px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); }
+	.card.wide { grid-column: 1 / -1; }
+	.card h2 { font-size: 0.95rem; margin: 14px 6px 4px; letter-spacing: -0.01em; }
+	.card > p { font-size: 0.85rem; color: var(--ink-3); margin: 0 6px; line-height: 1.55; }
+	.panel { padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+	.p-head { display: flex; justify-content: space-between; align-items: center; }
+	.p-label { font-size: 0.8rem; color: var(--ink-2); }
+	.p-value { display: flex; align-items: baseline; gap: 8px; font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; margin: 2px 0 12px; }
+	.unit { font-size: 0.85rem; font-weight: 500; color: var(--ink-2); }
+	.delta {
+		font-size: 0.75rem; font-weight: 600; padding: 2px 7px; border-radius: 6px;
+		background: rgba(34, 171, 155, 0.16); color: #7ee0d3;
+	}
+	.delta:empty { display: none; }
+	.chart { position: relative; }
+	.chart :global(svg) { display: block; width: 100%; height: auto; overflow: visible; }
+	.chart :global(text) { fill: var(--ink-3); font-size: 11px; font-family: inherit; }
+
+	.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; margin-top: 12px; }
+	.stats :global(.st) { padding: 8px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.035); font-size: 0.78rem; color: var(--ink-2); }
+	.stats :global(.st b) { display: block; color: var(--ink); font-size: 0.9rem; font-variant-numeric: tabular-nums; margin-top: 2px; }
+	.stats :global(.st i), .legend .sw { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: 0; }
+
+	.legend { display: flex; justify-content: center; gap: 16px; font-size: 0.8rem; color: var(--ink-2); margin-top: 6px; }
+	.sw.you { background: var(--you); }
+	.sw.ai { background: var(--ai); }
+
+	.scale { display: flex; align-items: center; gap: 8px; justify-content: flex-end; font-size: 0.75rem; color: var(--ink-3); margin-top: 10px; }
+	.scale i { width: 120px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #1d5d56, #22ab9b, #6fd6c8); }
+
+	.tip {
+		position: fixed; z-index: 50; pointer-events: none; padding: 6px 9px; border-radius: 8px;
+		background: #1f1f27; border: 1px solid rgba(255, 255, 255, 0.12); font-size: 0.78rem; color: var(--ink);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); white-space: nowrap;
+	}
+
+	@media (max-width: 760px) {
+		.tiles { grid-template-columns: 1fr 1fr; }
+		.grid { grid-template-columns: 1fr; }
+	}
+</style>
+
+<script>
+	import { startLive } from '../../../scripts/streams-live.ts';
+
+	const boot = () => document.querySelectorAll<HTMLElement>('[data-live]').forEach((el) => startLive(el));
+	boot();
+	document.addEventListener('astro:page-load', boot);
+</script>

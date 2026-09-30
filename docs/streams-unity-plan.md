@@ -270,6 +270,8 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 ## 정한 것
 
 - 2026-09-29 — **WebGL 먼저**, Unity 프로젝트는 **별도 리포** (`streams-unity`). 0단계 시작.
+- 2026-09-30 — 통계를 **공개**(합계·분포, `/games/streams/live/`)와 **관리자 전용**(판 하나하나·클라이언트·행동 기록·생각 시간·품질)으로 나눈다.
+  관리자 쪽은 별도 Worker `streams-admin` 을 Cloudflare Access 로 막는다 (`docs/streams-admin.md`).
 
 ## 진행
 
@@ -281,10 +283,12 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 - 2단계 시작 (2026-09-30): migration 0004 (`streams_games.mode`, `streams_events`), `POST /api/streams/events` (`worker/streams/events.ts`),
   Unity 가 `session_start` · `hover`(망설임) · `abandon` · `rematch` 를 5초마다 모아 보냄, 시작 화면에 수집 안내.
 - 2단계 데이터 품질 (2026-09-30): 규칙을 뷰 `streams_clean_games` · `streams_clean_turns` 로 (migration 0005).
+- 3단계 (2026-09-30): Durable Object `StatsHub` (`worker/streams/statshub.ts`, 계산은 `stats.ts`) + 공개 페이지 `/games/streams/live/`.
+  판 흐름 · 점수 분포 · 난이도별 사람 vs AI · 승무패 · 첫 카드 히트맵. 웹소켓(하이버네이션), 안 되면 5초 폴링.
+  관리자 통계 Worker `streams-admin` (`admin/`): 최근 판 · 클라이언트 · 행동 기록 · 생각 시간 · 품질 규칙으로 빠진 판.
 
 ## 정해야 할 것
 
 - 모바일 앱 출시 여부
 - 멀티 최대 인원, 빈자리 AI 허용 여부, 턴 제한 시간
-- 실시간 대시보드를 공개 페이지로 둘지, 관리자 전용으로 둘지
 - 로그인을 도입할 시점

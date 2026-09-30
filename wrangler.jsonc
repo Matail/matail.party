@@ -22,6 +22,11 @@
 	"kv_namespaces": [
 		{ "binding": "MODELS", "id": "b55048675931487b91162e41b0704667" }
 	],
+	// STREAMS 실시간 통계 — 집계와 웹소켓 방송을 한 곳에서 (worker/streams/stats.ts)
+	"durable_objects": {
+		"bindings": [{ "name": "STATS", "class_name": "StatsHub" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["StatsHub"] }],
 	// 요청이 먼 데이터센터(예: DFW)로 가도 D1(ICN) 가까이에서 Worker 를 돌리도록
 	"placement": { "mode": "smart" },
 	"observability": {

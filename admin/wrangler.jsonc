@@ -1,0 +1,19 @@
+{
+	// STREAMS 관리자 통계 — 공개 사이트(my-site)와 따로 배포한다. 설정: docs/streams-admin.md
+	//   npx wrangler deploy -c admin/wrangler.jsonc
+	// workers.dev 주소 전체를 Cloudflare Access 로 막는다 (Worker 설정 → Domains & Routes → workers.dev → Access).
+	"name": "streams-admin",
+	"main": "index.ts",
+	"compatibility_date": "2026-09-20",
+	"workers_dev": true,
+	// 공개 사이트와 같은 기록 DB — 여기서는 읽기만 한다
+	"d1_databases": [
+		{ "binding": "DB", "database_name": "streams-records", "database_id": "eeda2e62-917f-4c23-958e-56e202cfd302" }
+	],
+	// Access 를 켠 뒤 채운다. 비어 있으면 모든 요청을 막는다 (닫힌 채로 시작)
+	"vars": {
+		"ACCESS_TEAM_DOMAIN": "",
+		"ACCESS_AUD": ""
+	},
+	"observability": { "enabled": true }
+}
