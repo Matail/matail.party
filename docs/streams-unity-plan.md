@@ -266,6 +266,10 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
   localhost CORS (`worker/streams/client.ts`), 규칙 정답지 `worker/streams/testdata/rules.json` (`worker/streams/vectors.ts`).
 - 1단계 시작: 리포 [Matail/streams-unity](https://github.com/Matail/streams-unity) — C# 규칙(정답지 609개 일치),
   `IGameSession`/`AiSession`, 코드로 만든 UGUI 화면, WebGL 빌드 메뉴. 남은 것: 에디터 실행 확인, 사이트에 WebGL 올리기.
+- 1단계 (2026-09-30): The STREAMS+ 를 `/games/streams-unity/` 에 올리고 덱 카드를 교체 (도트 아트 화면, 튜토리얼, 소리).
+- 2단계 시작 (2026-09-30): migration 0004 (`streams_games.mode`, `streams_events`), `POST /api/streams/events` (`worker/streams/events.ts`),
+  Unity 가 `session_start` · `hover`(망설임) · `abandon` · `rematch` 를 5초마다 모아 보냄, 시작 화면에 수집 안내.
+  남은 것: 데이터 품질 규칙을 내보내기·분석 쪽에 반영.
 
 ## 정해야 할 것
 
