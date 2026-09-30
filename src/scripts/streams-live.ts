@@ -193,9 +193,6 @@ export function startLive(root: HTMLElement) {
   if (root.dataset.started) return;
   root.dataset.started = '1';
 
-  const status = root.querySelector('[data-conn]')!, dot = root.querySelector('[data-conn-dot]')!;
-  const setStatus = (live: boolean, text: string) => { status.textContent = text; dot.classList.toggle('on', live); };
-
   let ws: WebSocket | null = null, poll = 0, retry = 0, backoff = 5000, closed = false;
 
   const fetchOnce = () => fetch('/api/streams/stats').then((r) => r.json()).then((s: Stats) => render(root, s)).catch(() => {});
@@ -206,12 +203,10 @@ export function startLive(root: HTMLElement) {
     ws.onopen = () => {
       backoff = 5000;
       clearInterval(poll);
-      setStatus(true, 'LIVE · 판이 끝나면 바로 바뀌어요');
     };
     ws.onmessage = (e) => render(root, JSON.parse(e.data));
     ws.onclose = () => {
       if (closed) return;
-      setStatus(false, '5초마다 새로 받는 중');
       clearInterval(poll);
       poll = window.setInterval(fetchOnce, 5000);
       retry = window.setTimeout(connect, backoff);
