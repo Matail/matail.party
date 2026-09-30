@@ -6,8 +6,7 @@ interface LevelAgg { games: number; won: number; drawn: number; me: number; ai: 
 interface Stats {
   started: number; finished: number; won: number; drawn: number; best: number;
   todayStarted: number; todayFinished: number; todayBest: number;
-  levels: LevelAgg[]; bins: number[]; heat: number[]; clients: Record<string, number>;
-  recent: { level: number; me: number; ai: number; at: number }[];
+  levels: LevelAgg[]; bins: number[]; heat: number[];
   playing: number; updatedAt: number;
 }
 
@@ -19,16 +18,7 @@ const SLOTS = 20, CARDS = 30, BIN_WIDTH = 10;
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 const svg = (w: number, h: number, body: string) => `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${body}</svg>`;
-
-function ago(ms: number, now: number) {
-  const m = Math.floor((now - ms) / 60000);
-  if (m < 1) return '방금';
-  if (m < 60) return `${m}분 전`;
-  if (m < 1440) return `${Math.floor(m / 60)}시간 전`;
-  return `${Math.floor(m / 1440)}일 전`;
-}
 
 /** 두 색 사이 (hex) */
 function mix(a: string, b: string, t: number) {
@@ -195,24 +185,6 @@ function render(root: HTMLElement, s: Stats) {
   put('[data-stats="gauge"]', [['사람 승', s.won, C.you], ['무승부', s.drawn, C.draw], ['AI 승', s.finished - s.won - s.drawn, C.ai]]
     .map(([t, v, c]) => `<div class="st"><i style="background:${c}"></i>${t}<b>${fmt(v as number)}</b></div>`).join(''));
   put('[data-chart="heat"]', heat(s));
-
-  const now = Date.now();
-  put('[data-feed]', s.recent.length
-    ? s.recent.map((r) => {
-        const res = r.me > r.ai ? ['win', '사람 승'] : r.me < r.ai ? ['lose', 'AI 승'] : ['draw', '무승부'];
-        return `<li><span class="lv">${esc(LEVEL_NAMES[r.level - 1] ?? '-')}</span>
-                <span class="sc">사람 ${fmt(r.me)} : ${fmt(r.ai)} AI <span class="lv">· ${ago(r.at, now)}</span></span>
-                <span class="res ${res[0]}">${res[1]}</span></li>`;
-      }).join('')
-    : '<li class="empty">아직 끝난 판이 없어요</li>');
-
-  const total = Object.values(s.clients).reduce((a, b) => a + b, 0);
-  put('[data-bars]', total
-    ? Object.entries(s.clients).sort((a, b) => b[1] - a[1]).map(([k, v]) =>
-        `<div class="row"><span>${esc(k === 'unknown' ? '헤더 없음(옛 판)' : k)}</span>
-         <span class="track"><span class="fill" style="width:${pct(v, total)}%"></span></span>
-         <span class="num">${fmt(v)} · ${pct(v, total)}%</span></div>`).join('')
-    : '<div class="empty">아직 끝난 판이 없어요</div>');
 }
 
 // ── 연결 ─────────────────────────────────────────────────────────

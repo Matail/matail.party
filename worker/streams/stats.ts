@@ -4,14 +4,14 @@
 //   GET /api/streams/stats — 지금 스냅숏 (웹소켓이 안 될 때)
 //   GET /api/streams/live  — 웹소켓. 접속하면 스냅숏을 받고, 바뀔 때마다 다시 받는다 (초당 최대 1번)
 // 에디터·로컬 테스트 판(unity-editor/…)과 AI 대전이 아닌 판은 세지 않는다 — 품질 규칙(migration 0005)과 같다.
-// 공개 페이지이므로 익명 집계만 내보낸다. player_id·game_id 는 밖으로 나가지 않는다.
+// 공개 데이터만 센다: 합계·분포뿐, 판 하나하나(최근 판·시각)와 클라이언트 비율은 관리자 전용(admin/)이다.
+// player_id·game_id 는 밖으로 나가지 않는다.
 
 export const LEVEL_COUNT = 5;
 export const SLOTS = 20;
 export const CARDS = 30;
 export const BIN_WIDTH = 10;
 export const BINS = 11;            // 0~9, 10~19, … 90~99, 100 이상
-export const RECENT = 12;
 const ACTIVE_MS = 30 * 60 * 1000;  // 30분 넘게 끝나지 않은 판은 "두는 중" 에서 뺀다
 const DAY_OFFSET_MS = 9 * 3600 * 1000; // 하루는 한국 시각 기준
 
@@ -30,8 +30,6 @@ export interface Stats {
   levels: LevelAgg[];              // [0] 이 입문(1)
   bins: number[];                  // 사람 점수 분포
   heat: number[];                  // 첫 수: (card-1)*SLOTS + slot
-  clients: Record<string, number>; // 끝난 판의 클라이언트 종류 (web · unity-webgl …)
-  recent: { level: number; me: number; ai: number; at: number }[];
   active: Record<string, number>;  // 진행 중 game_id → 시작 시각 (밖으로 내보내지 않음)
   marks: string[];                 // 이미 센 첫 수·결과 ("f:<id>" · "e:<id>") — 옛 토큰으로 다시 보낸 수를 두 번 세지 않게 (밖으로 내보내지 않음)
 }
@@ -45,8 +43,6 @@ export const dayStartIso = (ms: number) => new Date(Date.parse(dayOf(ms) + "T00:
 
 export const counted = (client: string | null, mode = "ai") => mode === "ai" && !(client ?? "").startsWith("unity-editor/");
 
-export const clientKind = (client: string | null) => (client && client.includes("/") ? client.slice(0, client.indexOf("/")) : "unknown");
-
 export const binOf = (score: number) => Math.min(BINS - 1, Math.max(0, Math.floor(score / BIN_WIDTH)));
 
 export function emptyStats(now: number): Stats {
@@ -54,7 +50,7 @@ export function emptyStats(now: number): Stats {
     day: dayOf(now), started: 0, finished: 0, won: 0, drawn: 0, best: 0,
     todayStarted: 0, todayFinished: 0, todayBest: 0,
     levels: Array.from({ length: LEVEL_COUNT }, () => ({ games: 0, won: 0, drawn: 0, me: 0, ai: 0 })),
-    bins: Array(BINS).fill(0), heat: Array(CARDS * SLOTS).fill(0), clients: {}, recent: [], active: {}, marks: [],
+    bins: Array(BINS).fill(0), heat: Array(CARDS * SLOTS).fill(0), active: {}, marks: [],
   };
 }
 
@@ -100,8 +96,6 @@ function tally(s: Stats, g: Finished): boolean {
   lv.ai += g.ai;
   s.bins[binOf(g.me)]++;
   s.best = Math.max(s.best, g.me);
-  const k = clientKind(g.client);
-  s.clients[k] = (s.clients[k] ?? 0) + 1;
   return true;
 }
 
@@ -111,8 +105,6 @@ export function applyFinished(s: Stats, g: Finished, now: number) {
   if (!tally(s, g)) return;
   s.todayFinished++;
   s.todayBest = Math.max(s.todayBest, g.me);
-  s.recent.unshift({ level: g.level, me: g.me, ai: g.ai, at: now });
-  s.recent.length = Math.min(s.recent.length, RECENT);
   delete s.active[g.id];
 }
 
@@ -128,15 +120,13 @@ export async function countFromD1(db: D1Database, now: number): Promise<Stats> {
   const s = emptyStats(now);
   const ok = `g.mode = 'ai' AND (g.client IS NULL OR g.client NOT LIKE 'unity-editor/%')`;
   type Row = Record<string, number | string | null>;
-  const [totals, today, finished, heat, recent] = await db.batch<Row>([
+  const [totals, today, finished, heat] = await db.batch<Row>([
     db.prepare(`SELECT count(*) AS started FROM streams_games g WHERE ${ok}`),
     db.prepare(`SELECT count(*) AS started, coalesce(sum(g.status = 'finished'), 0) AS finished, coalesce(max(g.player_score), 0) AS best
                 FROM streams_games g WHERE ${ok} AND g.created_at >= ?`).bind(dayStartIso(now)),
-    db.prepare(`SELECT g.level, g.player_score AS me, g.ai_score AS ai, g.client FROM streams_games g WHERE ${ok} AND g.status = 'finished'`),
+    db.prepare(`SELECT g.level, g.player_score AS me, g.ai_score AS ai FROM streams_games g WHERE ${ok} AND g.status = 'finished'`),
     db.prepare(`SELECT t.card, t.player_slot AS slot, count(*) AS n FROM streams_turns t JOIN streams_games g ON g.id = t.game_id
                 WHERE t.turn = 0 AND ${ok} GROUP BY t.card, t.player_slot`),
-    db.prepare(`SELECT g.level, g.player_score AS me, g.ai_score AS ai, g.finished_at FROM streams_games g
-                WHERE ${ok} AND g.status = 'finished' ORDER BY g.finished_at DESC LIMIT ${RECENT}`),
   ]);
   s.started = Number(totals.results[0]?.started ?? 0);
   const d = today.results[0] ?? {};
@@ -144,12 +134,11 @@ export async function countFromD1(db: D1Database, now: number): Promise<Stats> {
   s.todayFinished = Number(d.finished ?? 0);
   s.todayBest = Number(d.best ?? 0);
   for (const r of finished.results) {
-    tally(s, { id: "", level: Number(r.level), me: Number(r.me), ai: Number(r.ai), client: (r.client as string | null) ?? null });
+    tally(s, { id: "", level: Number(r.level), me: Number(r.me), ai: Number(r.ai), client: null });
   }
   for (const r of heat.results) {
     const card = Number(r.card), slot = Number(r.slot);
     if (card >= 1 && card <= CARDS && slot >= 0 && slot < SLOTS) s.heat[(card - 1) * SLOTS + slot] += Number(r.n);
   }
-  s.recent = recent.results.map((r) => ({ level: Number(r.level), me: Number(r.me), ai: Number(r.ai), at: Date.parse(String(r.finished_at)) || now }));
   return s;
 }

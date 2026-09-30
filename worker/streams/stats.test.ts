@@ -1,7 +1,7 @@
 // stats.ts 집계 확인 (DO 없이 순수 함수만).
 //   node worker/streams/stats.test.ts
 import assert from "node:assert/strict";
-import { applyFinished, applyFirst, applyStarted, binOf, clientKind, counted, dayOf, dayStartIso, emptyStats, publicView, RECENT, SLOTS } from "./stats.ts";
+import { applyFinished, applyFirst, applyStarted, binOf, counted, dayOf, dayStartIso, emptyStats, publicView, SLOTS } from "./stats.ts";
 
 // 한국 날짜: UTC 15:00 = 다음날 00:00 KST
 assert.equal(dayOf(Date.parse("2026-09-30T14:59:59Z")), "2026-09-30");
@@ -13,8 +13,6 @@ assert.equal(counted("web/1"), true);
 assert.equal(counted(null), true);
 assert.equal(counted("unity-editor/0.1.0"), false);
 assert.equal(counted("web/1", "pvp"), false);
-assert.equal(clientKind("unity-webgl/0.1.0"), "unity-webgl");
-assert.equal(clientKind(null), "unknown");
 assert.deepEqual([0, 9, 10, 99, 100, 300].map(binOf), [0, 0, 1, 9, 10, 10]);
 
 const t0 = Date.parse("2026-09-30T10:00:00Z");
@@ -34,14 +32,12 @@ assert.deepEqual(s.levels[2], { games: 2, won: 1, drawn: 1, me: 72, ai: 69 });
 assert.equal(s.bins[4], 1);
 assert.equal(s.bins[3], 1);
 assert.equal(s.best, 42);
-assert.deepEqual(s.clients, { "unity-webgl": 1, web: 1 });
-assert.equal(s.recent[0].me, 30);                  // 최근 판이 맨 앞
 
-// 공개 모양: 판 id 가 새지 않고 진행 중은 개수만
+// 공개 모양: 판 id 가 새지 않고 진행 중은 개수만, 판 하나하나(최근 판)·클라이언트 비율은 없음 (관리자 전용)
 applyStarted(s, "g3", t0);
 const view = publicView(s, t0 + 70_000);
 assert.equal(view.playing, 1);
-assert.equal("active" in view || "marks" in view, false);
+assert.equal("active" in view || "marks" in view || "recent" in view || "clients" in view, false);
 assert.equal(JSON.stringify(view).includes("g3"), false);
 assert.equal(publicView(s, t0 + 31 * 60_000).playing, 0); // 30분 넘은 판은 빠진다
 
@@ -50,9 +46,5 @@ applyStarted(s, "g4", Date.parse("2026-09-30T16:00:00Z"));
 assert.equal(s.day, "2026-10-01");
 assert.equal(s.todayStarted, 1);
 assert.equal(s.todayFinished, 0);
-
-// 최근 판은 RECENT 개까지
-for (let i = 0; i < RECENT + 5; i++) applyFinished(s, { id: `r${i}`, level: 1, me: i, ai: 0, client: "web/1" }, t0);
-assert.equal(s.recent.length, RECENT);
 
 console.log("stats.test: ok");
