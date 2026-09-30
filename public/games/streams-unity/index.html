@@ -1,133 +1,169 @@
 <!DOCTYPE html>
-<html lang="en-us">
+<!-- The STREAMS+ WebGL 페이지. my-site(/games/streams-unity/) 에 올라가므로 바탕을 사이트와 같게 둔다:
+     전등 하나가 켜진 방 (원뿔 빛 · 바닥빛 · 비네트 · 필름 그레인). 값은 my-site src/styles/global.css 와 같다. -->
+<html lang="ko">
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Unity Web Player | streams-unity</title>
-    <link rel="shortcut icon" href="TemplateData/favicon.ico">
-    <link rel="stylesheet" href="TemplateData/style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The STREAMS+ · my-site</title>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <style>
+      :root {
+        --bg: #0A0A0F;
+        --text: #EDEBE6;
+        --text-mute: #8A8894;
+        --lamp: #FFB446;
+        --accent-rgb: 18, 249, 205; /* 덱 카드 색 #12F9CD */
+        --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      }
+      *, *::before, *::after { box-sizing: border-box; }
+      html { background: var(--bg); color: var(--text); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+      body { margin: 0; min-height: 100vh; position: relative; overflow: hidden; }
+
+      /* 전등 하나가 켜진 방 — my-site 공통 바탕 */
+      body::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+        background:
+          radial-gradient(62% 78% at 50% -14%, rgba(255, 180, 70, 0.16) 0%, rgba(255, 176, 66, 0.06) 34%, transparent 68%),
+          radial-gradient(120% 38% at 50% 104%, rgba(255, 170, 60, 0.035) 0%, transparent 70%),
+          radial-gradient(130% 100% at 50% 40%, transparent 52%, rgba(3, 3, 6, 0.55) 100%);
+        animation: lamp-breathe 8.5s ease-in-out infinite;
+      }
+      @keyframes lamp-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.93; } }
+      body::after {
+        content: '';
+        position: fixed;
+        inset: -50%;
+        pointer-events: none;
+        z-index: 1;
+        opacity: 0.026;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+      }
+      body > * { position: relative; z-index: 2; }
+      @media (prefers-reduced-motion: reduce) { body::before { animation: none; } }
+
+      .back-link {
+        position: fixed;
+        top: 16px;
+        left: 16px;
+        z-index: 3;
+        padding: 6px 12px;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: var(--text-mute);
+        font-size: 0.85rem;
+        text-decoration: none;
+      }
+      .back-link:hover { color: var(--lamp); }
+
+      /* 게임 화면: 창 안에 들어가는 가장 큰 16:9 */
+      .stage {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 56px 24px 40px;
+      }
+      .frame {
+        position: relative;
+        width: min(calc(100vw - 48px), calc((100vh - 96px) * 16 / 9));
+        aspect-ratio: 16 / 9;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #07070b;
+        box-shadow:
+          0 0 0 1px rgba(var(--accent-rgb), 0.22),
+          0 40px 80px -40px rgba(0, 0, 0, 0.95),
+          0 0 90px -50px rgba(var(--accent-rgb), 0.8);
+      }
+      #unity-canvas { display: block; width: 100%; height: 100%; background: #07070b; outline: none; }
+
+      .loading {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        gap: 14px;
+        justify-items: center;
+        color: var(--text-mute);
+        font-size: 0.85rem;
+        letter-spacing: 0.08em;
+      }
+      .bar { width: min(280px, 50%); height: 3px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+      .bar > span { display: block; height: 100%; width: 0; background: var(--lamp); box-shadow: 0 0 12px rgba(255, 180, 70, 0.7); transition: width 0.2s; }
+
+      .fullscreen {
+        position: absolute;
+        right: 12px;
+        bottom: 12px;
+        padding: 6px 12px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: var(--text-mute);
+        font: inherit;
+        font-size: 0.8rem;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s, color 0.2s;
+      }
+      .frame:hover .fullscreen { opacity: 1; }
+      .fullscreen:hover { color: var(--lamp); }
+
+      /* 휴대폰: 창 전체를 게임에 준다 */
+      body.mobile .stage { padding: 0; }
+      body.mobile .frame { width: 100vw; height: 100vh; aspect-ratio: auto; border-radius: 0; box-shadow: none; }
+      body.mobile .back-link, body.mobile .fullscreen { display: none; }
+    </style>
   </head>
   <body>
-    <div id="unity-container" class="unity-desktop">
-      <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
-      <div id="unity-loading-bar">
-        <div id="unity-logo"></div>
-        <div id="unity-progress-bar-empty">
-          <div id="unity-progress-bar-full"></div>
+    <a href="/" class="back-link">← 홈으로</a>
+    <main class="stage">
+      <div class="frame">
+        <canvas id="unity-canvas" tabindex="-1"></canvas>
+        <div class="loading" id="loading">
+          <span>LOADING</span>
+          <div class="bar"><span id="bar"></span></div>
         </div>
+        <button class="fullscreen" id="fullscreen" type="button">전체화면</button>
       </div>
-      <div id="unity-warning"> </div>
-      <div id="unity-footer">
-        <div id="unity-logo-title-footer"></div>
-        <div id="unity-fullscreen-button"></div>
-        <div id="unity-build-title">streams-unity</div>
-      </div>
-    </div>
+    </main>
+    <script src="Build/b51a714e60f82482338e7f395f7a2ab1.loader.js"></script>
     <script>
-      var canvas = document.querySelector("#unity-canvas");
-
-      // Shows a temporary message banner/ribbon for a few seconds, or
-      // a permanent error message on top of the canvas if type=='error'.
-      // If type=='warning', a yellow highlight color is used.
-      // Modify or remove this function to customize the visually presented
-      // way that non-critical warnings and error messages are presented to the
-      // user.
-      function unityShowBanner(msg, type) {
-        var warningBanner = document.querySelector("#unity-warning");
-        function updateBannerVisibility() {
-          warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
-        }
-        var div = document.createElement('div');
-        div.innerHTML = msg;
-        warningBanner.appendChild(div);
-        if (type == 'error') div.style = 'background: red; padding: 10px;';
-        else {
-          if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
-          setTimeout(function() {
-            warningBanner.removeChild(div);
-            updateBannerVisibility();
-          }, 5000);
-        }
-        updateBannerVisibility();
+      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+        var meta = document.createElement('meta');
+        meta.name = 'viewport';
+        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+        document.head.appendChild(meta);
+        document.body.classList.add('mobile');
       }
 
-      var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/f2ed67ddae9b2a9ea84e8c7925ad28d6.loader.js";
-      var config = {
+      createUnityInstance(document.querySelector("#unity-canvas"), {
         arguments: [],
-        dataUrl: buildUrl + "/0c28fa7896d7a38bc7a8505cb60431f7.data",
-        frameworkUrl: buildUrl + "/cf2f404bcc80d524dab053868cdf43bd.framework.js",
-        codeUrl: buildUrl + "/91fcac4d889f02b4c294ca8f7a8be015.wasm",
+        dataUrl: "Build/81de0f9cc5c7a6f13a0b5d1df559bf1b.data",
+        frameworkUrl: "Build/9754aa3db3ec9367462fd11385dcf140.framework.js",
+        codeUrl: "Build/ac587c0ec859b46e946cf029ea45560a.wasm",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "streams-unity",
         productVersion: "0.1.0",
-        showBanner: unityShowBanner,
-        // errorHandler: function(err, url, line) {
-        //    alert("error " + err + " occurred at line " + line);
-        //    // Return 'true' if you handled this error and don't want Unity
-        //    // to process it further, 'false' otherwise.
-        //    return true;
-        // },
-      };
-
-      // By default, Unity keeps WebGL canvas render target size matched with
-      // the DOM size of the canvas element (scaled by window.devicePixelRatio)
-      // Set this to false if you want to decouple this synchronization from
-      // happening inside the engine, and you would instead like to size up
-      // the canvas DOM size and WebGL render target sizes yourself.
-      // config.matchWebGLToCanvasSize = false;
-
-      // If you would like all file writes inside Unity Application.persistentDataPath
-      // directory to automatically persist so that the contents are remembered when
-      // the user revisits the site the next time, uncomment the following line:
-      // config.autoSyncPersistentDataPath = true;
-      // This autosyncing is currently not the default behavior to avoid regressing
-      // existing user projects that might rely on the earlier manual
-      // JS_FileSystem_Sync() behavior, but in future Unity version, this will be
-      // expected to change.
-
-      if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
-        // Mobile device style: fill the whole browser client area with the game canvas:
-
-        var meta = document.createElement('meta');
-        meta.name = 'viewport';
-        meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-        document.getElementsByTagName('head')[0].appendChild(meta);
-        document.querySelector("#unity-container").className = "unity-mobile";
-        canvas.className = "unity-mobile";
-
-        // To lower canvas resolution on mobile devices to gain some
-        // performance, uncomment the following line:
-        // config.devicePixelRatio = 1;
-
-
-      } else {
-        // Desktop style: Render the game canvas in a window that can be maximized to fullscreen:
-        canvas.style.width = "960px";
-        canvas.style.height = "600px";
-      }
-
-      document.querySelector("#unity-loading-bar").style.display = "block";
-
-      var script = document.createElement("script");
-      script.src = loaderUrl;
-      script.onload = () => {
-        createUnityInstance(canvas, config, (progress) => {
-          document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
-              }).then((unityInstance) => {
-                document.querySelector("#unity-loading-bar").style.display = "none";
-                document.querySelector("#unity-fullscreen-button").onclick = () => {
-                  unityInstance.SetFullscreen(1);
-                };
-
-              }).catch((message) => {
-                alert(message);
-              });
-            };
-
-      document.body.appendChild(script);
-
+      }, (progress) => {
+        document.getElementById("bar").style.width = (100 * progress) + "%";
+      }).then((unityInstance) => {
+        document.getElementById("loading").remove();
+        document.getElementById("fullscreen").onclick = () => unityInstance.SetFullscreen(1);
+      }).catch((message) => {
+        document.getElementById("loading").textContent = "게임을 불러오지 못했어요. 새로고침해 주세요.";
+        console.error(message);
+      });
     </script>
   </body>
 </html>
