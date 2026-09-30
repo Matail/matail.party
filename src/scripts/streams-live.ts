@@ -1,4 +1,4 @@
-// STREAMS 실시간 통계 페이지 (src/pages/games/streams/live.astro).
+// STREAMS 실시간 통계 페이지 (src/pages/stats/streams.astro).
 // 웹소켓(/api/streams/live)으로 스냅숏을 받아 SVG 로 다시 그린다. 끊기면 5초마다 /api/streams/stats 를 받고 다시 붙는다.
 // 차트 색은 dataviz 검증을 통과한 역할 색: 사람 #3987e5 · AI #e66767 · 단일 계열 #22ab9b (어두운 카드 #16161c 기준).
 

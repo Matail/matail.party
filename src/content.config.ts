@@ -45,6 +45,8 @@ const games = defineCollection({
 		emblem: z.string().optional(),
 		// 키아트가 움직이는 경우: 가로로 이어 붙인 스프라이트 시트와 그 프레임 수
 		artFrames: z.number().int().min(2).optional(),
+		// 공개 통계 페이지가 /stats/<id>/ 에 있다 (통계 탭에 올라간다)
+		stats: z.boolean().default(false),
 		// 태그
 		tags: z.array(z.string()).optional(),
 		// 출시일
