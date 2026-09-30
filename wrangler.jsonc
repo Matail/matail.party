@@ -4,15 +4,20 @@
 	// CI 에서는 그게 실패한다 (Missing entry-point to Worker script or to assets directory).
 	//
 	// 사이트는 astro build 결과(dist/)를 정적 파일로 서빙한다.
-	// /api/* 요청만 Worker 코드(worker/index.ts)가 먼저 받는다 — STREAMS 게임 API.
+	// 요청은 Worker 코드(worker/index.ts)가 먼저 받아 /api/* 는 STREAMS 게임 API 로, 옛 주소는 matail.xyz 로 넘기고
+	// 나머지는 정적 파일로 보낸다.
 	"name": "my-site",
 	"main": "worker/index.ts",
+	// 대표 주소. Worker 이름(my-site)은 그대로 둔다 — 바꾸면 새 Worker 가 되어 실시간 통계 DO 가 끊긴다
+	"routes": [{ "pattern": "matail.xyz", "custom_domain": true }],
 	"compatibility_date": "2026-09-20",
 	"assets": {
 		"directory": "./dist",
 		"binding": "ASSETS",
 		"not_found_handling": "404-page",
-		"run_worker_first": ["/api/*"]
+		// 모든 요청을 Worker 가 먼저 본다 — 옛 주소(workers.dev)로 온 요청을 matail.xyz 로 넘기려면
+		// 호스트를 봐야 하는데, 정적 파일이 먼저 나가면 그 기회가 없다 (worker/index.ts)
+		"run_worker_first": true
 	},
 	// STREAMS 플레이 기록 (비공개). 스키마: migrations/
 	"d1_databases": [
