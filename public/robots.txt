@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 
-Sitemap: https://my-site.matail.workers.dev/sitemap-index.xml
+Sitemap: https://matail.party/sitemap-index.xml
