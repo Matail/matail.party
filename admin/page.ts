@@ -6,7 +6,7 @@ export const PAGE = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>my-site 관리자</title>
+<title>Matail 관리자</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root { --bg:#0a0a0f; --card:#111116; --panel:#16161c; --line:rgba(255,255,255,.07); --ink:#edebe6; --ink-2:#a7a5ae; --ink-3:#7c7a84;
