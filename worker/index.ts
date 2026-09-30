@@ -7,7 +7,7 @@ import { preflight, withCors } from "./streams/client.ts";
 export { StatsHub } from "./streams/statshub.ts";
 
 // 대표 주소 (astro.config.mjs 의 SITE 와 같다)
-const SITE = "https://matail.xyz";
+const SITE = "https://matail.party";
 const OLD_HOST = "my-site.matail.workers.dev";
 
 interface Env extends StreamsEnv {

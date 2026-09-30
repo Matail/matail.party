@@ -922,9 +922,9 @@ h1, h2, h3, h4 {
 ## 로고 (`public/brand/`)
 
 사이트 이름 **Matail(맛테일 — '맛있는칵테일')** 의 로고. 상단 마크(`Brand.astro`)·파비콘·미리보기 그림(`og/site.png`)에 씁니다.
-주소는 **https://matail.xyz** 입니다. 리포 · Worker 이름은 그대로 `my-site` 입니다 — Worker 이름을 바꾸면 새 Worker 가 되어
+주소는 **https://matail.party** 입니다. 리포 · Worker 이름은 그대로 `my-site` 입니다 — Worker 이름을 바꾸면 새 Worker 가 되어
 실시간 통계(Durable Object)와 관리자 Worker 바인딩이 끊깁니다. 옛 주소 `my-site.matail.workers.dev` 로 오는 페이지 요청은
-Worker 가 matail.xyz 로 301 이동시킵니다 (`/api` 는 제외).
+Worker 가 matail.party 로 301 이동시킵니다 (`/api` 는 제외).
 
 마크 하나에 세 가지가 겹칩니다.
 

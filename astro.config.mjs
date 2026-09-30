@@ -5,7 +5,7 @@ import sitemap from '@astrojs/sitemap';
 // 검색 노출: 대표 주소(canonical)·og 이미지 주소와 sitemap 이 이 주소로 만들어진다. 도메인을 바꾸면 여기와
 // public/robots.txt, public/games/streams-unity/index.html (Unity 템플릿 원본은 streams-unity 리포),
 // wrangler.jsonc 의 routes, worker/index.ts 의 SITE 를 같이 바꾼다.
-const SITE = 'https://matail.xyz';
+const SITE = 'https://matail.party';
 
 // https://astro.build/config
 export default defineConfig({
