@@ -146,6 +146,17 @@ CREATE TABLE streams_events (
 - `think_ms` 이상치(예: 10분 넘게 자리 비움) 표시.
 - 클라이언트별 분포 비교 — Unity 에서 두는 방식이 웹과 다르면(예: 터치라 오른쪽 칸을 덜 씀) 모델 학습 때 구분 변수로 쓴다.
 
+규칙은 D1 뷰 두 개에 있다 (migration 0005). **내보내기·분석은 원본 테이블 대신 이 뷰를 읽는다.**
+
+| 뷰 | 담는 것 |
+|---|---|
+| `streams_clean_games` | 끝난 AI 대전 중 20턴이 다 있고, 에디터·로컬 테스트(`unity-editor/…`)가 아니고, `attempts > 1` 턴이 없는 판. `client_kind`(web · unity-webgl …), `max_think_ms`, `has_slow_turn` |
+| `streams_clean_turns` | 위 판들의 턴. `slow_turn` = 생각 시간 기록이 없거나 10분(600000ms) 초과 — **빼지 않고 표시만** 한다 |
+
+```sh
+npx wrangler d1 execute streams-records --remote --json --command "SELECT * FROM streams_clean_turns" > turns.json
+```
+
 ## 3단계 — 실시간 웹 반영 (2주)
 
 "수집된 데이터가 실시간으로 웹에 올라간다"를 **Durable Object `StatsHub` 하나**로 한다.
@@ -269,7 +280,7 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 - 1단계 (2026-09-30): The STREAMS+ 를 `/games/streams-unity/` 에 올리고 덱 카드를 교체 (도트 아트 화면, 튜토리얼, 소리).
 - 2단계 시작 (2026-09-30): migration 0004 (`streams_games.mode`, `streams_events`), `POST /api/streams/events` (`worker/streams/events.ts`),
   Unity 가 `session_start` · `hover`(망설임) · `abandon` · `rematch` 를 5초마다 모아 보냄, 시작 화면에 수집 안내.
-  남은 것: 데이터 품질 규칙을 내보내기·분석 쪽에 반영.
+- 2단계 데이터 품질 (2026-09-30): 규칙을 뷰 `streams_clean_games` · `streams_clean_turns` 로 (migration 0005).
 
 ## 정해야 할 것
 
