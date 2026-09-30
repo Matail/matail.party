@@ -1,0 +1,52 @@
+---
+/* 통계 탭 — 공개 통계가 있는 게임(games 의 stats: true)을 모아 둔다.
+   게임마다 페이지는 /stats/<id>/ 에 따로 있다. 새 게임은 그 페이지를 만들고 stats: true 만 켜면 여기 올라온다. */
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+const games = (await getCollection('games', (g) => g.data.stats)).sort(
+	(a, b) => b.data.releaseDate.valueOf() - a.data.releaseDate.valueOf(),
+);
+---
+
+<Layout title="통계 · my-site" description="my-site 게임들에서 모은 익명 플레이 통계." width="wide">
+	<header class="head" data-reveal>
+		<h1>통계</h1>
+	</header>
+
+	<section class="list" data-reveal style="--reveal-delay: 120">
+		{
+			games.map((g) => (
+				<a class="item tap" href={`/stats/${g.id}/`} style={g.data.accent ? `--accent: ${g.data.accent}` : undefined}>
+					<span class="name">{g.data.title}</span>
+					{g.data.shortDescription && <span class="desc">{g.data.shortDescription}</span>}
+					<span class="go" aria-hidden="true">→</span>
+				</a>
+			))
+		}
+	</section>
+</Layout>
+
+<style>
+	.head h1 { margin: 0 0 1.5rem; }
+
+	.list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+
+	.item {
+		--accent: var(--lamp);
+		position: relative;
+		display: grid;
+		gap: 4px;
+		padding: 18px 44px 18px 20px;
+		border-radius: 16px;
+		background: rgba(255, 255, 255, 0.035);
+		border: 1px solid var(--border);
+		border-left: 3px solid var(--accent);
+		color: var(--text);
+		transition: background var(--t-fast) var(--ease-soft);
+	}
+	.item:hover, .item:focus-visible { background: rgba(255, 255, 255, 0.06); }
+	.name { font-weight: 600; font-size: 1.05rem; }
+	.desc { font-size: 0.88rem; color: var(--text-mute); }
+	.go { position: absolute; right: 18px; top: 50%; translate: 0 -50%; color: var(--accent); }
+</style>

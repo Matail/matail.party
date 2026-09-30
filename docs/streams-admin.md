@@ -1,11 +1,11 @@
 # STREAMS 관리자 통계 (`streams-admin`)
 
-공개 통계(`/games/streams/live/`)에 없는 것을 보는 관리자 전용 페이지. 공개 사이트와 **따로 배포하는 Worker** 이고,
+공개 통계(`/stats/streams/`)에 없는 것을 보는 관리자 전용 페이지. 공개 사이트와 **따로 배포하는 Worker** 이고,
 `workers.dev` 주소 전체를 **Cloudflare Access** 로 막는다. 코드는 `admin/`.
 
 ## 무엇이 공개이고 무엇이 관리자 전용인가
 
-| 공개 (`/games/streams/live/`, `/api/streams/stats`) | 관리자 전용 (`streams-admin`) |
+| 공개 (`/stats/streams/`, `/api/streams/stats`) | 관리자 전용 (`streams-admin`) |
 |---|---|
 | 지금 두는 중 · 오늘 끝난 판 · 오늘 최고 · 지금까지 끝난 판 | 최근 끝난 판 30개 (시각 · 걸린 시간 · 클라이언트) |
 | 판 흐름 (시작 → 끝까지 → AI 를 이김) | 클라이언트별 판 수 · 평균 점수 · 사람 승률 (30일) |

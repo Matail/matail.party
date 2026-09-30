@@ -15,6 +15,7 @@ emblem: '/art/emblem-streams.png'
 tags: ['퍼즐', '확률', 'AI 대전']
 releaseDate: '2026-09-30'
 status: 'published'
+stats: true
 ---
 
 카드 20장이 한 장씩 나오고, 20칸 중 원하는 곳에 놓아요. 한 번 놓은 카드는 옮길 수 없어요.
