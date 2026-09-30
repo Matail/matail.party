@@ -5,10 +5,24 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The STREAMS+ · my-site</title>
+    <title>The STREAMS+ — 숫자 카드 퍼즐 AI 대전 · my-site</title>
+    <meta name="description" content="카드 20장을 한 장씩 받아 20칸에 놓고, 작거나 같은 숫자로 길게 이을수록 점수가 커지는 숫자 퍼즐. 같은 카드를 받는 AI와 점수를 겨뤄요. 난이도 5단계와 튜토리얼, 설치 없이 브라우저에서 바로.">
+    <link rel="canonical" href="https://my-site.matail.workers.dev/games/streams-unity/">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="my-site">
+    <meta property="og:locale" content="ko_KR">
+    <meta property="og:title" content="The STREAMS+ — 숫자 카드 퍼즐 AI 대전">
+    <meta property="og:description" content="카드 20장을 한 장씩 받아 20칸에 놓고, 작거나 같은 숫자로 길게 이을수록 점수가 커지는 숫자 퍼즐. 같은 카드를 받는 AI와 점수를 겨뤄요. 난이도 5단계와 튜토리얼, 설치 없이 브라우저에서 바로.">
+    <meta property="og:url" content="https://my-site.matail.workers.dev/games/streams-unity/">
+    <meta property="og:image" content="https://my-site.matail.workers.dev/og/streams.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <script type="application/ld+json">{"@context": "https://schema.org", "@type": "VideoGame", "name": "The STREAMS+", "url": "https://my-site.matail.workers.dev/games/streams-unity/", "description": "카드 20장을 한 장씩 받아 20칸에 놓고, 작거나 같은 숫자로 길게 이을수록 점수가 커지는 숫자 퍼즐. 같은 카드를 받는 AI와 점수를 겨뤄요. 난이도 5단계와 튜토리얼, 설치 없이 브라우저에서 바로.", "image": "https://my-site.matail.workers.dev/og/streams.png", "inLanguage": "ko", "genre": ["퍼즐", "카드 게임"], "gamePlatform": "웹 브라우저", "applicationCategory": "GameApplication", "operatingSystem": "Any", "playMode": "SinglePlayer", "isAccessibleForFree": true, "publisher": {"@type": "Organization", "name": "my-site", "url": "https://my-site.matail.workers.dev/"}}</script>
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
     <style>
+      .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
       :root {
         --bg: #0A0A0F;
         --text: #EDEBE6;
@@ -126,6 +140,9 @@
   </head>
   <body>
     <a href="/" class="back-link">← 홈으로</a>
+    <!-- 게임 화면은 캔버스라 글자가 없다 — 검색·스크린리더용 소개 -->
+    <h1 class="sr-only">The STREAMS+</h1>
+    <p class="sr-only">카드 20장을 한 장씩 받아 20칸에 놓고, 작거나 같은 숫자로 길게 이을수록 점수가 커지는 숫자 퍼즐. 같은 카드를 받는 AI와 점수를 겨뤄요. 난이도 5단계와 튜토리얼, 설치 없이 브라우저에서 바로.</p>
     <main class="stage">
       <div class="frame">
         <canvas id="unity-canvas" tabindex="-1"></canvas>
