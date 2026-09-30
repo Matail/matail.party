@@ -1,6 +1,7 @@
 // STREAMS API — 계약 전체는 docs/streams-api.md
 //   POST /api/streams/start  { level, playerId? }          → { gameId, token, level, levelName, turn, card }
 //   POST /api/streams/move   { token, slot, thinkMs? }       → { token, aiSlot, turn, playerScore, aiScore, nextCard | finished }
+//   POST /api/streams/events { sessionId?, playerId?, events } → 202 { accepted }   (행동 기록, events.ts)
 // 요청 헤더 x-streams-client (예: web/1, unity-webgl/0.1.0) 는 streams_games.client 에 남는다 (client.ts).
 // 게임 상태(덱 포함)는 암호화 토큰(state.ts)으로 클라이언트가 들고 다니고, 클라이언트는 지금 카드 한 장만 본다.
 // 응답을 먼저 보내고 D1 기록은 waitUntil 로 뒤에서 쓴다 — 수마다 DB 왕복을 기다리지 않는다.
@@ -8,6 +9,7 @@
 
 import { LEVELS, PolicyNet, StreamsAI, type Level, type ManifestEntry } from "./ai.ts";
 import { clientOf } from "./client.ts";
+import { insertEvents, parseEvents } from "./events.ts";
 import { N, newDeck, score } from "./game.ts";
 import { open, seal, type GameState } from "./state.ts";
 
@@ -104,9 +106,17 @@ async function move(req: Request, env: Env, ctx: ExecutionContext) {
   return res;
 }
 
+async function events(req: Request, env: Env, ctx: ExecutionContext) {
+  const batch = parseEvents(await req.json().catch(() => null));
+  if (typeof batch === "string") return json({ error: batch }, 400);
+  if (batch.rows.length > 0) background(ctx, env.DB.batch(insertEvents(env.DB, batch, clientOf(req), new Date().toISOString())));
+  return json({ accepted: batch.rows.length }, 202);
+}
+
 export async function handleStreams(req: Request, env: Env, ctx: ExecutionContext, path: string): Promise<Response> {
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
   if (path === "/api/streams/start") return start(req, env, ctx);
   if (path === "/api/streams/move") return move(req, env, ctx);
+  if (path === "/api/streams/events") return events(req, env, ctx);
   return json({ error: "not found" }, 404);
 }

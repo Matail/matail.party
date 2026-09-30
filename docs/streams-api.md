@@ -112,6 +112,48 @@ x-streams-client: <종류>/<버전>
 - 옛 토큰을 다시 보내면 그 시점부터 다시 둘 수 있지만, 서버는 처음 둔 수만 학습용으로 인정하고 다시 둔 턴은 `attempts` 를 올린다.
   → 네트워크 오류로 **재시도**할 때는 같은 토큰·같은 `slot` 으로 보낸다. 다른 칸으로 바꿔 보내지 않는다.
 
+## `POST /api/streams/events` — 행동 기록 (묶음)
+
+턴 기록으로 못 담는 행동을 모아 보낸다 (칸 위에서 망설임, 판 포기, 재대전, 세션). 테이블 `streams_events` (migration 0004).
+**분석용이라 잃어도 되는 기록이다** — 실패해도 다시 보내지 않고, 게임 진행을 막지 않는다. 학습용 `streams_turns` 와 섞지 않는다.
+
+요청
+
+```json
+{
+  "sessionId": "0b6e…",
+  "playerId": "0b6e…",
+  "events": [
+    { "seq": 0, "type": "session_start", "ts": 1790000000000 },
+    { "gameId": "a1b2…", "seq": 1, "type": "hover", "ts": 1790000001000, "data": "{\"turn\":2,\"slot\":7,\"card\":15,\"ms\":640}" }
+  ]
+}
+```
+
+| 필드 | 타입 | 설명 |
+|---|---|---|
+| `sessionId` | 문자열, 선택 | 앱을 켤 때마다 새로 만드는 id. `[0-9A-Za-z-]{1,64}` |
+| `playerId` | 문자열, 선택 | `/start` 와 같은 익명 id |
+| `events` | 배열, 최대 50개 | 아래 |
+| `events[].seq` | 정수 ≥ 0 | 세션 안의 순번 |
+| `events[].type` | 문자열 | `^[a-z][a-z_]{0,31}$` |
+| `events[].gameId` | 문자열, 선택 | 판과 상관없으면 생략 |
+| `events[].ts` | 정수, 선택 | 클라이언트 시각 (epoch ms) |
+| `events[].data` | JSON 문자열 또는 객체, 선택 | 1KB 이하. Unity(JsonUtility)는 문자열로 보낸다 |
+
+형식이 틀린 이벤트는 **그것만 버리고** 나머지를 받는다.
+
+응답 `202 { "accepted": 2 }` (받은 개수) · 오류 `400 invalid body` / `events must be an array` / `at most 50 events`
+
+### 이벤트 종류
+
+| `type` | 언제 | `data` |
+|---|---|---|
+| `session_start` | 앱(페이지)을 켤 때 한 번 | — |
+| `hover` | 빈칸 위에 커서가 머물다가 **놓지 않고** 떠날 때 (망설임, 0.1초 미만은 뺌) | `turn`, `slot`, `card`, `ms` (머문 시간) |
+| `abandon` | 끝나지 않은 AI 대전을 두고 새 판(또는 튜토리얼)을 시작할 때. 페이지를 닫고 떠난 판은 `streams_games.status = 'playing'` 으로 남는다 | `turn` (놓은 카드 수), `level` |
+| `rematch` | 결과 화면에서 "한 판 더" | `level` |
+
 ## 규칙 (클라이언트 이식용)
 
 - 보드 20칸, 덱은 40장 풀(1~10 한 장씩, 11~20 두 장씩, 21~30 한 장씩)에서 무작위 20장.
@@ -126,3 +168,4 @@ x-streams-client: <종류>/<버전>
 | 날짜 | 변경 |
 |---|---|
 | 2026-09-29 | v1 문서화. `x-streams-client` 헤더, localhost CORS, `streams_games.client` (migration 0003) |
+| 2026-09-30 | `POST /api/streams/events`, `streams_events` 테이블과 `streams_games.mode` (migration 0004) |
