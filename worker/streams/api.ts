@@ -2,6 +2,7 @@
 //   POST /api/streams/start  { level, playerId? }          → { gameId, token, level, levelName, turn, card }
 //   POST /api/streams/move   { token, slot, thinkMs? }       → { token, aiSlot, turn, playerScore, aiScore, nextCard | finished }
 //   POST /api/streams/events { sessionId?, playerId?, events } → 202 { accepted }   (행동 기록, events.ts)
+//   GET  /api/streams/stats · /api/streams/live(웹소켓)                              (실시간 통계, stats.ts)
 // 요청 헤더 x-streams-client (예: web/1, unity-webgl/0.1.0) 는 streams_games.client 에 남는다 (client.ts).
 // 게임 상태(덱 포함)는 암호화 토큰(state.ts)으로 클라이언트가 들고 다니고, 클라이언트는 지금 카드 한 장만 본다.
 // 응답을 먼저 보내고 D1 기록은 waitUntil 로 뒤에서 쓴다 — 수마다 DB 왕복을 기다리지 않는다.
@@ -10,6 +11,7 @@
 import { LEVELS, PolicyNet, StreamsAI, type Level, type ManifestEntry } from "./ai.ts";
 import { clientOf } from "./client.ts";
 import { insertEvents, parseEvents } from "./events.ts";
+import type { StatsHub } from "./statshub.ts";
 import { N, newDeck, score } from "./game.ts";
 import { open, seal, type GameState } from "./state.ts";
 
@@ -17,7 +19,11 @@ export interface Env {
   DB: D1Database;
   MODELS: KVNamespace;
   STREAMS_KEY: string;
+  STATS: DurableObjectNamespace<StatsHub>;
 }
+
+/** 실시간 통계는 한 곳(DO 하나)에 모은다 */
+const hub = (env: Env) => env.STATS.get(env.STATS.idFromName("global"));
 
 const AI_MODEL = "v17-pikl";
 let aiPromise: Promise<StreamsAI> | null = null;
@@ -62,6 +68,7 @@ async function start(req: Request, env: Env, ctx: ExecutionContext) {
     `INSERT INTO streams_games (id, token, player_id, level, ai_model, deck, player_board, ai_board, client, created_at)
      VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?)`,
   ).bind(state.id, playerId, level, AI_MODEL, JSON.stringify(state.deck), empty, empty, clientOf(req), new Date().toISOString()).run());
+  background(ctx, hub(env).started(state.id, clientOf(req)));
   return json({ gameId: state.id, token: await seal(state, env.STREAMS_KEY), level, levelName: LEVELS[level].name, turn: 0, card: state.deck[0] });
 }
 
@@ -97,6 +104,9 @@ async function move(req: Request, env: Env, ctx: ExecutionContext) {
     ).bind(JSON.stringify(next.pb), JSON.stringify(next.ab), N, ps, as, now, g.id));
   }
   background(ctx, env.DB.batch(writes));
+  // 실시간 통계: 첫 수(어느 칸에 먼저 두나)와 판 결과만. 옛 토큰으로 다시 보낸 수는 허브가 판 id 로 걸러 낸다
+  if (g.turn === 0) background(ctx, hub(env).first(g.id, card, slot, clientOf(req)));
+  if (finished) background(ctx, hub(env).finished({ id: g.id, level: g.level, me: ps, ai: as, client: clientOf(req) }));
 
   const res = json({
     token: await seal(next, env.STREAMS_KEY), aiSlot, turn: next.turn, playerScore: ps, aiScore: as,
@@ -114,6 +124,12 @@ async function events(req: Request, env: Env, ctx: ExecutionContext) {
 }
 
 export async function handleStreams(req: Request, env: Env, ctx: ExecutionContext, path: string): Promise<Response> {
+  if (req.method === "GET" && path === "/api/streams/live") return hub(env).fetch(req);
+  if (req.method === "GET" && path === "/api/streams/stats") {
+    const res = json(await hub(env).snapshot());
+    res.headers.set("cache-control", "public, max-age=5");
+    return res;
+  }
   if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
   if (path === "/api/streams/start") return start(req, env, ctx);
   if (path === "/api/streams/move") return move(req, env, ctx);

@@ -154,6 +154,39 @@ x-streams-client: <종류>/<버전>
 | `abandon` | 끝나지 않은 AI 대전을 두고 새 판(또는 튜토리얼)을 시작할 때. 페이지를 닫고 떠난 판은 `streams_games.status = 'playing'` 으로 남는다 | `turn` (놓은 카드 수), `level` |
 | `rematch` | 결과 화면에서 "한 판 더" | `level` |
 
+## 실시간 통계 — `GET /api/streams/stats` · `GET /api/streams/live`
+
+공개 페이지 `/games/streams/live/` 가 쓴다. 집계는 Durable Object `StatsHub` 하나에 있고(`worker/streams/statshub.ts`, 계산은 `stats.ts`),
+`/start` · 첫 `/move` · 마지막 `/move` 때 갱신된다. **D1 을 실시간으로 조회하지 않는다** — DO 가 처음 뜰 때만 D1 에서 한 번 센다.
+
+- `GET /api/streams/stats` → 지금 스냅숏 (5초 캐시)
+- `GET /api/streams/live` → 웹소켓. 접속하면 스냅숏 한 번, 이후 바뀔 때마다 새 스냅숏 (초당 최대 1번)
+- 세는 판: AI 대전, 에디터·로컬 테스트(`unity-editor/…`) 제외 — 품질 규칙(migration 0005)과 같다. 옛 토큰으로 다시 보낸 첫 수·결과는 판 id 로 한 번만 센다
+- 익명 집계만 나간다. `player_id` · `game_id` 는 들어 있지 않다
+
+```json
+{
+  "started": 81, "finished": 66, "won": 21, "drawn": 4, "best": 58,
+  "day": "2026-09-30", "todayStarted": 13, "todayFinished": 8, "todayBest": 49, "playing": 1,
+  "levels": [{ "games": 15, "won": 3, "drawn": 1, "me": 221, "ai": 337 }, "… 5개 (입문 → 마스터)"],
+  "bins": [4, 13, 17, 15, 13, 4, 0, 0, 0, 0, 0],
+  "heat": ["600칸: (첫 카드 - 1) × 20 + 칸"],
+  "clients": { "unity-webgl": 36, "web": 22, "unknown": 8 },
+  "recent": [{ "level": 3, "me": 42, "ai": 39, "at": 1790744000000 }],
+  "updatedAt": 1790744220000
+}
+```
+
+| 필드 | 뜻 |
+|---|---|
+| `won` · `drawn` | 사람 기준 승 · 무 (패 = `finished - won - drawn`) |
+| `day` · `today*` | 한국 날짜 기준 오늘 |
+| `playing` | 시작했지만 아직 끝나지 않은 판 (30분 넘으면 뺌) |
+| `levels[i].me` · `.ai` | 그 난이도 끝난 판의 사람 · AI 점수 합 (평균 = 합 / `games`) |
+| `bins` | 사람 점수 10점 단위 분포, 마지막은 100점 이상 |
+| `heat` | 첫 수: 첫 카드 숫자별로 놓은 칸 |
+| `recent` | 최근 끝난 판 12개 |
+
 ## 규칙 (클라이언트 이식용)
 
 - 보드 20칸, 덱은 40장 풀(1~10 한 장씩, 11~20 두 장씩, 21~30 한 장씩)에서 무작위 20장.
@@ -169,3 +202,4 @@ x-streams-client: <종류>/<버전>
 |---|---|
 | 2026-09-29 | v1 문서화. `x-streams-client` 헤더, localhost CORS, `streams_games.client` (migration 0003) |
 | 2026-09-30 | `POST /api/streams/events`, `streams_events` 테이블과 `streams_games.mode` (migration 0004) |
+| 2026-09-30 | `GET /api/streams/stats` · `/api/streams/live` (Durable Object `StatsHub`) |
