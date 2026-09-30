@@ -9,7 +9,7 @@ color: 'cyan'
 thumb: '🔢'
 art: '/art/streams-anim.png'
 artFrames: 9
-accent: '#12F9CD'
+accent: '#34C7B5'
 lettering: 'THE|STREAMS+'
 emblem: '/art/emblem-streams.png'
 tags: ['퍼즐', '확률', 'AI 대전']
