@@ -7,6 +7,7 @@
 // 게임 상태(덱 포함)는 암호화 토큰(state.ts)으로 클라이언트가 들고 다니고, 클라이언트는 지금 카드 한 장만 본다.
 // 응답을 먼저 보내고 D1 기록은 waitUntil 로 뒤에서 쓴다 — 수마다 DB 왕복을 기다리지 않는다.
 // 뒤에서 쓰는 기록은 순서가 뒤바뀌어도 되게: 턴 기록은 INSERT 만, 게임 결과는 끝날 때 한 번.
+// 관리자 설정 streams/collect 가 false 면 게임은 그대로 되지만 D1 기록·실시간 집계를 남기지 않는다 (판 단위: 토큰의 rec).
 
 import { LEVELS, PolicyNet, StreamsAI, type Level, type ManifestEntry } from "./ai.ts";
 import { clientOf } from "./client.ts";
@@ -14,6 +15,7 @@ import { insertEvents, parseEvents } from "./events.ts";
 import type { StatsHub } from "./statshub.ts";
 import { N, newDeck, score } from "./game.ts";
 import { open, seal, type GameState } from "./state.ts";
+import { setting } from "../settings.ts";
 
 export interface Env {
   DB: D1Database;
@@ -56,19 +58,25 @@ function background(ctx: ExecutionContext, write: Promise<unknown>) {
   ctx.waitUntil(write.catch((e) => console.error("streams db write failed", e)));
 }
 
+const collecting = (env: Env) => setting(env.DB, "streams", "collect", true);
+
 async function start(req: Request, env: Env, ctx: ExecutionContext) {
   const body = (await req.json().catch(() => ({}))) as { level?: number; playerId?: string };
   const level = Number(body.level) as Level;
   if (!(level in LEVELS)) return json({ error: "level must be 1~5" }, 400);
   const playerId = typeof body.playerId === "string" ? body.playerId.slice(0, 64) : null;
   const state: GameState = { id: randomId(12), level, deck: newDeck(), pb: Array(N).fill(0), ab: Array(N).fill(0), turn: 0 };
-  const empty = JSON.stringify(state.pb);
-  // token 컬럼은 서버 상태 방식일 때 쓰던 것 — 이제 비워 둔다
-  background(ctx, env.DB.prepare(
-    `INSERT INTO streams_games (id, token, player_id, level, ai_model, deck, player_board, ai_board, client, created_at)
-     VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?)`,
-  ).bind(state.id, playerId, level, AI_MODEL, JSON.stringify(state.deck), empty, empty, clientOf(req), new Date().toISOString()).run());
-  background(ctx, hub(env).started(state.id, clientOf(req)));
+  if (await collecting(env)) {
+    const empty = JSON.stringify(state.pb);
+    // token 컬럼은 서버 상태 방식일 때 쓰던 것 — 이제 비워 둔다
+    background(ctx, env.DB.prepare(
+      `INSERT INTO streams_games (id, token, player_id, level, ai_model, deck, player_board, ai_board, client, created_at)
+       VALUES (?, '', ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).bind(state.id, playerId, level, AI_MODEL, JSON.stringify(state.deck), empty, empty, clientOf(req), new Date().toISOString()).run());
+    background(ctx, hub(env).started(state.id, clientOf(req)));
+  } else {
+    state.rec = false;
+  }
   return json({ gameId: state.id, token: await seal(state, env.STREAMS_KEY), level, levelName: LEVELS[level].name, turn: 0, card: state.deck[0] });
 }
 
@@ -89,9 +97,23 @@ async function move(req: Request, env: Env, ctx: ExecutionContext) {
   next.pb[slot] = card;
   next.ab[aiSlot] = card;
   const finished = next.turn === N;
-  const ps = score(next.pb), as = score(next.ab), now = new Date().toISOString();
+  const ps = score(next.pb), as = score(next.ab);
   const thinkMs = Number.isFinite(body.thinkMs) ? Math.max(0, Math.round(body.thinkMs!)) : null;
 
+  if (g.rec !== false) record(env, ctx, req, g, next, card, slot, aiSlot, thinkMs);
+
+  const res = json({
+    token: await seal(next, env.STREAMS_KEY), aiSlot, turn: next.turn, playerScore: ps, aiScore: as,
+    ...(finished ? { finished: true } : { nextCard: g.deck[next.turn] }),
+  });
+  res.headers.set("server-timing", `model;dur=${aiMs}`);
+  return res;
+}
+
+/** 한 수를 D1 과 실시간 집계에 남긴다 (응답 뒤에) */
+function record(env: Env, ctx: ExecutionContext, req: Request, g: GameState, next: GameState, card: number, slot: number, aiSlot: number, thinkMs: number | null) {
+  const finished = next.turn === N;
+  const ps = score(next.pb), as = score(next.ab), now = new Date().toISOString();
   // 옛 토큰으로 같은 턴을 다시 두면 처음 기록을 유지하고 attempts 만 올린다 (분석에서 제외용)
   const writes = [env.DB.prepare(
     `INSERT INTO streams_turns (game_id, turn, card, player_slot, ai_slot, think_ms, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -107,18 +129,12 @@ async function move(req: Request, env: Env, ctx: ExecutionContext) {
   // 실시간 통계: 첫 수(어느 칸에 먼저 두나)와 판 결과만. 옛 토큰으로 다시 보낸 수는 허브가 판 id 로 걸러 낸다
   if (g.turn === 0) background(ctx, hub(env).first(g.id, card, slot, clientOf(req)));
   if (finished) background(ctx, hub(env).finished({ id: g.id, level: g.level, me: ps, ai: as, client: clientOf(req) }));
-
-  const res = json({
-    token: await seal(next, env.STREAMS_KEY), aiSlot, turn: next.turn, playerScore: ps, aiScore: as,
-    ...(finished ? { finished: true } : { nextCard: g.deck[next.turn] }),
-  });
-  res.headers.set("server-timing", `model;dur=${aiMs}`);
-  return res;
 }
 
 async function events(req: Request, env: Env, ctx: ExecutionContext) {
   const batch = parseEvents(await req.json().catch(() => null));
   if (typeof batch === "string") return json({ error: batch }, 400);
+  if (!(await collecting(env))) return json({ accepted: 0 }, 202);
   if (batch.rows.length > 0) background(ctx, env.DB.batch(insertEvents(env.DB, batch, clientOf(req), new Date().toISOString())));
   return json({ accepted: batch.rows.length }, 202);
 }

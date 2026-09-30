@@ -8,6 +8,7 @@ export type GameState = {
   pb: number[]; // 사람 보드
   ab: number[]; // AI 보드
   turn: number; // 놓은 카드 수
+  rec?: false;  // 판을 시작할 때 수집이 꺼져 있었다 — 이 판은 기록하지 않는다 (없으면 기록)
 };
 
 let keyPromise: Promise<CryptoKey> | null = null;

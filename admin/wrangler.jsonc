@@ -6,10 +6,14 @@
 	"main": "index.ts",
 	"compatibility_date": "2026-09-20",
 	"workers_dev": true,
-	// 공개 사이트와 같은 기록 DB — 여기서는 읽기만 한다
+	// 공개 사이트와 같은 기록 DB — 통계·내보내기는 읽기, 설정(site_settings) 쓰기와 테스트 기록 정리만 쓴다
 	"d1_databases": [
 		{ "binding": "DB", "database_name": "streams-records", "database_id": "eeda2e62-917f-4c23-958e-56e202cfd302" }
 	],
+	// 공개 사이트(my-site)의 실시간 통계 DO — 공개 카드 설정을 바꾸면 다시 읽으라고 알린다
+	"durable_objects": {
+		"bindings": [{ "name": "STATS", "class_name": "StatsHub", "script_name": "my-site" }]
+	},
 	// Access 를 켠 뒤 채운다. 비어 있으면 모든 요청을 막는다 (닫힌 채로 시작)
 	"vars": {
 		"ACCESS_TEAM_DOMAIN": "flat-water-0474.cloudflareaccess.com",

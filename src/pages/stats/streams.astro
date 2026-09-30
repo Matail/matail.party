@@ -16,7 +16,7 @@ import Layout from '../../layouts/Layout.astro';
 			<h1>지금 사람들은<br />이렇게 두고 있어요</h1>
 		</header>
 
-		<section class="tiles" aria-label="요약">
+		<section class="tiles" aria-label="요약" data-card="tiles">
 			<div class="tile"><span class="t-label">지금 두는 중</span><span class="t-value" data-v="playing">–</span></div>
 			<div class="tile"><span class="t-label">오늘 끝난 판</span><span class="t-value" data-v="todayFinished">–</span></div>
 			<div class="tile"><span class="t-label">오늘 최고 점수</span><span class="t-value" data-v="todayBest">–</span></div>
@@ -24,7 +24,7 @@ import Layout from '../../layouts/Layout.astro';
 		</section>
 
 		<section class="grid">
-			<article class="card">
+			<article data-card="funnel" class="card">
 				<div class="panel">
 					<div class="p-head"><span class="p-label">판 흐름</span></div>
 					<div class="p-value"><span data-v="started">–</span><span class="delta" data-v="finishRate"></span></div>
@@ -33,7 +33,7 @@ import Layout from '../../layouts/Layout.astro';
 				</div>
 			</article>
 
-			<article class="card">
+			<article data-card="bins" class="card">
 				<div class="panel">
 					<div class="p-head"><span class="p-label">사람 점수 분포</span></div>
 					<div class="p-value"><span data-v="avg">–</span><span class="unit">점 평균</span></div>
@@ -41,7 +41,7 @@ import Layout from '../../layouts/Layout.astro';
 				</div>
 			</article>
 
-			<article class="card">
+			<article data-card="radar" class="card">
 				<div class="panel">
 					<div class="p-head"><span class="p-label">난이도별 평균 점수</span></div>
 					<div class="p-value"><span data-v="levelsPlayed">–</span><span class="unit">개 난이도에서 둠</span></div>
@@ -53,7 +53,7 @@ import Layout from '../../layouts/Layout.astro';
 				</div>
 			</article>
 
-			<article class="card">
+			<article data-card="gauge" class="card">
 				<div class="panel">
 					<div class="p-head"><span class="p-label">사람이 이긴 비율</span></div>
 					<div class="p-value"><span data-v="winRate">–</span><span class="unit">%</span></div>
@@ -62,7 +62,7 @@ import Layout from '../../layouts/Layout.astro';
 				</div>
 			</article>
 
-			<article class="card wide">
+			<article data-card="heat" class="card wide">
 				<div class="panel">
 					<div class="p-head"><span class="p-label">첫 카드는 어디에</span></div>
 					<div class="p-value"><span data-v="firstMoves">–</span><span class="unit">번의 첫 수</span></div>
@@ -117,6 +117,7 @@ import Layout from '../../layouts/Layout.astro';
 		background: rgba(34, 171, 155, 0.16); color: #7ee0d3;
 	}
 	.delta:empty { display: none; }
+	[data-card][hidden] { display: none; }
 	.chart { position: relative; }
 	.chart :global(svg) { display: block; width: 100%; height: auto; overflow: visible; }
 	.chart :global(text) { fill: var(--ink-3); font-size: 11px; font-family: inherit; }

@@ -163,11 +163,13 @@ x-streams-client: <종류>/<버전>
 - `GET /api/streams/live` → 웹소켓. 접속하면 스냅숏 한 번, 이후 바뀔 때마다 새 스냅숏 (초당 최대 1번)
 - 세는 판: AI 대전, 에디터·로컬 테스트(`unity-editor/…`) 제외 — 품질 규칙(migration 0005)과 같다. 옛 토큰으로 다시 보낸 첫 수·결과는 판 id 로 한 번만 센다
 - **공개 데이터만** 나간다: 합계와 분포. `player_id` · `game_id`, 판 하나하나(최근 판·시각), 클라이언트 비율은 없다 — 그건 관리자 전용 (`docs/streams-admin.md`)
+- `cards` 는 관리자가 공개로 둔 카드(`tiles` · `funnel` · `bins` · `radar` · `gauge` · `heat`). **꺼진 카드만 쓰는 필드는 빠진다** (`stats.ts` 의 `PUBLIC_CARDS`)
 
 ```json
 {
-  "started": 81, "finished": 66, "won": 21, "drawn": 4, "best": 58,
-  "day": "2026-09-30", "todayStarted": 13, "todayFinished": 8, "todayBest": 49, "playing": 1,
+  "day": "2026-09-30", "cards": ["tiles", "funnel", "bins", "radar", "gauge", "heat"],
+  "started": 81, "finished": 66, "won": 21, "drawn": 4,
+  "todayFinished": 8, "todayBest": 49, "playing": 1,
   "levels": [{ "games": 15, "won": 3, "drawn": 1, "me": 221, "ai": 337 }, "… 5개 (입문 → 마스터)"],
   "bins": [4, 13, 17, 15, 13, 4, 0, 0, 0, 0, 0],
   "heat": ["600칸: (첫 카드 - 1) × 20 + 칸"],
@@ -183,6 +185,12 @@ x-streams-client: <종류>/<버전>
 | `levels[i].me` · `.ai` | 그 난이도 끝난 판의 사람 · AI 점수 합 (평균 = 합 / `games`) |
 | `bins` | 사람 점수 10점 단위 분포, 마지막은 100점 이상 |
 | `heat` | 첫 수: 첫 카드 숫자별로 놓은 칸 |
+
+## 데이터 수집 끄기
+
+관리자 설정 `streams/collect` 가 `false` 면 (migration 0006 `site_settings`, 최대 30초 뒤 적용) 게임은 그대로 되지만
+`/start` · `/move` 가 D1 · 실시간 집계에 남기지 않고, `/events` 는 `202 { "accepted": 0 }` 으로 버린다.
+판 단위로 따른다 — 시작할 때 꺼져 있던 판은 토큰에 표시되어 끝까지 기록하지 않는다. 응답 모양은 바뀌지 않는다.
 
 ## 규칙 (클라이언트 이식용)
 
@@ -200,3 +208,4 @@ x-streams-client: <종류>/<버전>
 | 2026-09-29 | v1 문서화. `x-streams-client` 헤더, localhost CORS, `streams_games.client` (migration 0003) |
 | 2026-09-30 | `POST /api/streams/events`, `streams_events` 테이블과 `streams_games.mode` (migration 0004) |
 | 2026-09-30 | `GET /api/streams/stats` · `/api/streams/live` (Durable Object `StatsHub`) |
+| 2026-09-30 | 관리자 설정 (migration 0006): 수집 끄기, 공개 카드 선택 — 통계 응답에 `cards`, 꺼진 카드의 필드는 빠짐. `best` · `todayStarted` 는 쓰는 카드가 없어 빠짐 |
