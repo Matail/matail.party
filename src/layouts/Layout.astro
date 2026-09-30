@@ -45,7 +45,9 @@ const ogImage = new URL(image, Astro.site);
 		<meta name="description" content={description} />
 		<meta name="theme-color" content="#0A0A0F" />
 
-		<!-- 구글 서치 콘솔 소유 확인 (URL 접두어 속성 https://my-site.matail.workers.dev/). 지우면 확인이 풀린다 -->
+		<!-- 구글 서치 콘솔 소유 확인. 지우면 확인이 풀린다.
+		     위: https://matail.party/ · 아래: 옛 주소 https://my-site.matail.workers.dev/ (주소 변경이 끝날 때까지 둔다) -->
+		<meta name="google-site-verification" content="T5jjNGFhIRaYqnY11QN-OHND9dQ2K9B19SZdd5Z_FT8" />
 		<meta name="google-site-verification" content="sLkkfdJ-DulFoSo-rsvtHzk7bWXKDg8GZBgnHppsZMI" />
 		<link rel="canonical" href={canonical} />
 		<meta property="og:type" content="website" />
