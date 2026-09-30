@@ -10,6 +10,10 @@
 	"main": "worker/index.ts",
 	// 대표 주소. Worker 이름(my-site)은 그대로 둔다 — 바꾸면 새 Worker 가 되어 실시간 통계 DO 가 끊긴다
 	"routes": [{ "pattern": "matail.party", "custom_domain": true }],
+	// routes 가 있으면 wrangler 는 workers.dev 주소를 기본으로 끈다. 옛 주소(→ 301)와 브랜치 미리보기 주소를
+	// 살려 두려고 둘 다 명시적으로 켠다
+	"workers_dev": true,
+	"preview_urls": true,
 	"compatibility_date": "2026-09-20",
 	"assets": {
 		"directory": "./dist",
