@@ -128,7 +128,7 @@ STREAMS 의 `x-streams-client` 와 같은 형식이다 (`<종류>/<버전>`, 버
 
 ## `GET /api/aimbooster/stats` · `GET /api/aimbooster/live` — 공개 집계
 
-`/stats` 는 지금 집계 한 번(캐시 5초), `/live` 는 웹소켓으로 바뀔 때마다(최대 초당 1번) 같은 모양을 보낸다. `/stats/aimbooster/` 페이지용(5단계).
+`/stats` 는 지금 집계 한 번(캐시 5초), `/live` 는 웹소켓으로 바뀔 때마다(최대 초당 1번) 같은 모양을 보낸다. `/stats/aimbooster/` 페이지가 쓴다.
 
 ```json
 {
@@ -142,6 +142,19 @@ STREAMS 의 `x-streams-client` 와 같은 형식이다 (`<종류>/<버전>`, 버
 - `playing` — 시작하고 30분 안에 끝나지 않은 판. `started` 는 에디터를 뺀 시작 수, 나머지는 깨끗한 판(`aim_clean_runs`)만.
 - 분포 배열은 끝의 0 을 잘라 보낸다. `survival[i]` 는 `i × 500ms` 칸, `reaction[i]` 는 `i × 25ms` 칸 (판별 반응 시간 중앙값).
 - 판 하나하나를 가리키는 값(id · 시각 · 클라이언트 · `player_id`)은 나가지 않는다.
+
+## 게임 → 통계 페이지: `localStorage["aimbooster-me"]`
+
+서버 API 는 아니지만 게임과 사이트가 나누는 약속이라 여기 적는다. WebGL 게임(`/games/aimbooster/`)은 판이 끝날 때마다
+이 브라우저 기록의 요약을 같은 사이트 `localStorage` 에 둔다 (aimbooster-unity `SiteBridge`). 통계 페이지(`/stats/aimbooster/`)가
+읽어 분포 위에 "내 위치" 를 그리고 `/rank` 로 상위 % 를 묻는다 — 게임 안 통계 창과 같은 값.
+
+```json
+{ "bestMs": 41300, "hits": 512, "shots": 640, "runs": 14 }
+```
+
+`bestMs` 는 가장 오래 버틴 판, `hits` · `shots` 는 모든 판의 합, `runs` 는 판 수 (게임이 기기에 둔 최근 500판 기준).
+페이지는 이 숫자 셋만 `/rank` 에 물을 뿐이고 서버는 기록하지 않는다 (id 없음).
 
 ## 저장
 

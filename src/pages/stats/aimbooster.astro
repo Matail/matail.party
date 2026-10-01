@@ -1,0 +1,131 @@
+---
+/* AIMBOOSTER 실시간 통계 (docs/aimbooster-api.md).
+   집계는 Worker 의 Durable Object AimStatsHub 에 있고, 이 페이지는 웹소켓(/api/aimbooster/live)으로 받아 그리기만 한다.
+   웹소켓이 안 되면 /api/aimbooster/stats 를 5초마다 받는다. 익명 집계만 보여 준다.
+   "내 위치" 는 이 브라우저에서 한 판들(게임이 localStorage 에 둔 요약)로만 그린다 — 서버에 내 기록을 묻지 않는다.
+   카드 모양 · 색은 STREAMS 통계 페이지(stats/streams.astro)와 같다. */
+import Layout from '../../layouts/Layout.astro';
+---
+
+<Layout
+	title="Aimbooster 실시간 · Matail"
+	description="Aimbooster 에서 사람들이 얼마나 버티고 얼마나 맞히는지 — 버틴 시간 · 명중률 · 반응 시간 분포와 내 위치."
+	width="wide"
+	image="/og/aimbooster.png"
+>
+	<div class="live" data-live>
+		<header class="hero">
+			<h1>지금 사람들은<br />이만큼 버티고 있어요</h1>
+		</header>
+
+		<section class="tiles" aria-label="요약">
+			<div class="tile"><span class="t-label">지금 하는 중</span><span class="t-value" data-v="playing">–</span></div>
+			<div class="tile"><span class="t-label">오늘 끝난 판</span><span class="t-value" data-v="todayFinished">–</span></div>
+			<div class="tile"><span class="t-label">오늘 최고 기록</span><span class="t-value" data-v="todayBest">–</span></div>
+			<div class="tile"><span class="t-label">지금까지 끝난 판</span><span class="t-value" data-v="finished">–</span></div>
+		</section>
+
+		<section class="me" aria-label="내 위치" data-me></section>
+
+		<section class="grid">
+			<article class="card">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">버틴 시간</span></div>
+					<div class="p-value"><span data-v="survivalMedian">–</span><span class="unit">초가 한가운데</span></div>
+					<div class="chart" data-chart="survival" role="img" aria-label="판별 버틴 시간 분포 막대 (초)"></div>
+					<div class="stats" data-stats="survival"></div>
+				</div>
+			</article>
+
+			<article class="card">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">판별 명중률</span></div>
+					<div class="p-value"><span data-v="accuracyAll">–</span><span class="unit">% 전체 명중률</span></div>
+					<div class="chart" data-chart="accuracy" role="img" aria-label="판별 명중률 분포 막대 (%)"></div>
+				</div>
+			</article>
+
+			<article class="card wide">
+				<div class="panel">
+					<div class="p-head"><span class="p-label">반응 시간 (판마다 과녁이 나와서 맞힐 때까지의 중앙값)</span></div>
+					<div class="p-value"><span data-v="reactionMedian">–</span><span class="unit">ms 가 한가운데</span></div>
+					<div class="chart" data-chart="reaction" role="img" aria-label="판별 반응 시간 중앙값 분포 막대 (ms)"></div>
+				</div>
+			</article>
+		</section>
+
+		<p class="play"><a href="/games/aimbooster/">게임 하러 가기 →</a></p>
+
+		<div class="tip" data-tip hidden></div>
+	</div>
+</Layout>
+
+<style>
+	/* STREAMS 통계 페이지와 같은 카드 · 색 */
+	.live {
+		--card: #111116;
+		--panel: #16161c;
+		--line: rgba(255, 255, 255, 0.07);
+		--ink: #edebe6;
+		--ink-2: #a7a5ae;
+		--ink-3: #7c7a84;
+		--me: #3987e5;
+		padding-bottom: 4rem;
+	}
+
+	.hero { text-align: center; padding: clamp(2rem, 6vw, 4rem) 0 2rem; }
+	.hero h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.2rem); }
+
+	.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0 auto 16px; max-width: 960px; }
+	.tile, .me :global(.me-item) {
+		display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px;
+		background: var(--card); border: 1px solid var(--line);
+	}
+	.t-label, .me :global(.t-label) { font-size: 0.8rem; color: var(--ink-2); }
+	.t-value, .me :global(.t-value) { font-size: 1.6rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+	.me { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 960px; margin: 0 auto 16px; }
+	.me :global(.me-item) { border-color: rgba(57, 135, 229, 0.35); }
+	.me :global(.me-top) { font-size: 0.85rem; font-weight: 600; color: var(--me); }
+	.me :global(.me-note), .me :global(.me-empty) { grid-column: 1 / -1; margin: 0; font-size: 0.8rem; color: var(--ink-3); }
+	.me :global(.me-empty) { padding: 14px 16px; border-radius: 14px; border: 1px dashed var(--line); color: var(--ink-2); }
+	.me :global(a), .play a { color: var(--me); }
+
+	.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 960px; margin: 0 auto; }
+	.card { padding: 12px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); }
+	.card.wide { grid-column: 1 / -1; }
+	.panel { padding: 16px; border-radius: 14px; background: var(--panel); border: 1px solid var(--line); }
+	.p-head { display: flex; justify-content: space-between; align-items: center; }
+	.p-label { font-size: 0.8rem; color: var(--ink-2); }
+	.p-value { display: flex; align-items: baseline; gap: 8px; font-size: 1.7rem; font-weight: 600; font-variant-numeric: tabular-nums; margin: 2px 0 12px; }
+	.unit { font-size: 0.85rem; font-weight: 500; color: var(--ink-2); }
+	.chart { position: relative; }
+	.chart :global(svg) { display: block; width: 100%; height: auto; overflow: visible; }
+	.chart :global(text) { fill: var(--ink-3); font-size: 11px; font-family: inherit; }
+	.card.wide .chart :global(svg) { max-height: 220px; }
+
+	.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 6px; margin-top: 12px; }
+	.stats :global(.st) { padding: 8px 10px; border-radius: 9px; background: rgba(255, 255, 255, 0.035); font-size: 0.78rem; color: var(--ink-2); }
+	.stats :global(.st b) { display: block; color: var(--ink); font-size: 0.9rem; font-variant-numeric: tabular-nums; margin-top: 2px; }
+
+	.play { text-align: center; margin: 2rem 0 0; }
+
+	.tip {
+		position: fixed; z-index: 50; pointer-events: none; padding: 6px 9px; border-radius: 8px;
+		background: #1f1f27; border: 1px solid rgba(255, 255, 255, 0.12); font-size: 0.78rem; color: var(--ink);
+		box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); white-space: nowrap;
+	}
+
+	@media (max-width: 760px) {
+		.tiles { grid-template-columns: 1fr 1fr; }
+		.grid { grid-template-columns: 1fr; }
+	}
+</style>
+
+<script>
+	import { startLive } from '../../scripts/aimbooster-live.ts';
+
+	const boot = () => document.querySelectorAll<HTMLElement>('[data-live]').forEach((el) => startLive(el));
+	boot();
+	document.addEventListener('astro:page-load', boot);
+</script>
