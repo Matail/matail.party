@@ -1,16 +1,18 @@
-// my-site Worker: /api/* 만 처리하고 나머지는 정적 파일(dist/)로 넘긴다.
+// my-site Worker: /api/* 만 처리하고 나머지는 정적 파일(dist/)로 넘긴다. /api/streams/* 는 STREAMS, /api/aimbooster/* 는 AIMBOOSTER.
 // 옛 주소(my-site.matail.workers.dev)로 온 페이지 요청은 대표 주소로 영구 이동시킨다.
+import { handleAimbooster, type Env as AimEnv } from "./aimbooster/api.ts";
 import { handleStreams, type Env as StreamsEnv } from "./streams/api.ts";
 import { preflight, withCors } from "./streams/client.ts";
 
 // 실시간 통계 Durable Object (wrangler.jsonc 의 durable_objects)
 export { StatsHub } from "./streams/statshub.ts";
+export { AimStatsHub } from "./aimbooster/statshub.ts";
 
 // 대표 주소 (astro.config.mjs 의 SITE 와 같다)
 const SITE = "https://matail.party";
 const OLD_HOST = "my-site.matail.workers.dev";
 
-interface Env extends StreamsEnv {
+interface Env extends StreamsEnv, AimEnv {
   ASSETS: Fetcher;
 }
 
@@ -23,11 +25,12 @@ export default {
     if (url.hostname === OLD_HOST && !path.startsWith("/api/")) {
       return Response.redirect(`${SITE}${path}${url.search}`, 301);
     }
-    if (path.startsWith("/api/streams/")) {
+    const api = path.startsWith("/api/streams/") ? handleStreams : path.startsWith("/api/aimbooster/") ? handleAimbooster : null;
+    if (api) {
       if (req.method === "OPTIONS") return preflight(req);
       let res: Response;
       try {
-        res = await handleStreams(req, env, ctx, path);
+        res = await api(req, env, ctx, path);
       } catch (e) {
         console.error(e);
         res = new Response(JSON.stringify({ error: "server error" }), { status: 500, headers: { "content-type": "application/json" } });
