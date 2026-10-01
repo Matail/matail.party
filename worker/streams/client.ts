@@ -1,4 +1,4 @@
-// 어떤 클라이언트가 보낸 요청인지 (x-streams-client 헤더) 와 CORS.
+// 어떤 클라이언트가 보낸 요청인지 (x-streams-client · x-aimbooster-client 헤더) 와 CORS.
 //
 // 헤더 형식: "<종류>/<버전>" — 예: web/1, unity-webgl/0.1.0, unity-editor/0.1.0
 // 헤더가 없거나 형식이 틀려도 요청은 받는다 (캐시된 옛 웹 페이지). 그때 기록은 null.
@@ -8,8 +8,8 @@
 
 const CLIENT_RE = /^[a-z][a-z0-9-]{0,31}\/[0-9A-Za-z.+-]{1,32}$/;
 
-export function clientOf(req: Request): string | null {
-  const v = req.headers.get("x-streams-client")?.trim() ?? "";
+export function clientOf(req: Request, header = "x-streams-client"): string | null {
+  const v = req.headers.get(header)?.trim() ?? "";
   return CLIENT_RE.test(v) ? v : null;
 }
 
@@ -19,8 +19,8 @@ function corsHeaders(origin: string | null): Record<string, string> | null {
   if (!origin || !LOCAL_RE.test(origin)) return null;
   return {
     "access-control-allow-origin": origin,
-    "access-control-allow-methods": "POST, OPTIONS",
-    "access-control-allow-headers": "content-type, x-streams-client",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-allow-headers": "content-type, x-streams-client, x-aimbooster-client",
     "access-control-expose-headers": "server-timing",
     "access-control-max-age": "86400",
     vary: "origin",
