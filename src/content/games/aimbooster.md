@@ -9,7 +9,7 @@ color: 'pink'
 thumb: '🎯'
 art: '/art/aimbooster-anim.png'
 artFrames: 9
-accent: '#F32BC8'
+accent: '#E63C33'
 lettering: 'AIM|BOOSTER'
 emblem: '/art/emblem-aimbooster.png'
 tags: ['액션', '반응속도', 'FPS']

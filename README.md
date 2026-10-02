@@ -315,7 +315,7 @@ DOM 으로 덮는데, 스프라이트가 밝은 하늘색이면 DOM 사각형이
 
 | 카드 | 움직임 |
 | :--- | :--- |
-| Aimbooster | 네온 링이 숨 쉬듯 밝아졌다 어두워지고, 격자 바닥에 반사가 번진다 |
+| Aimbooster | 권총이 불을 뿜고, 큰 과녁의 앰버 타이머 링이 조각나며 줄어드는 사이 다른 과녁에 불꽃이 튄다 |
 | Coming Soon | 매달린 전구가 깜빡이고 캐비닛 화면이 켜졌다 잦아든다 |
 
 `animate_image(first_frame_url=..., action="...")` 로 뽑았습니다.
@@ -339,6 +339,12 @@ base64 를 만질 필요가 없는 유일한 길입니다.
 > 네온 간판의 깜빡임으로 읽혀서 그대로 뒀습니다. 형태가 바뀌면 안 되는 그림이라면
 > 프롬프트에 "everything else stays perfectly still" 을 넣고 결과를 프레임 단위로 확인하세요.
 
+**Aimbooster 키아트는 게임 화면을 구도 참고로 줬습니다.** 3D 판(Unity)이 나오면서 카드를 게임과 같은 사격장으로
+다시 만들었습니다. 게임 캡처에서 점수판 · 글자 · 크로스헤어를 지우고 16:10 으로 잘라 160×100 · 32색(octree)으로
+줄이면 base64 가 4k 자쯤이라 인자로 넘어갑니다 (median-cut 으로 줄이면 빨강 · 앰버가 죽습니다). 이것과 게임의 과녁
+그림을 `create_image_pro(reference_images=[...])` 에 넘겨 256×160 을 뽑았습니다 (한 장에 20 generations, 세 장 중 하나).
+움직임은 "조명만" 시켰는데도 모델이 한 장면을 연출했습니다 — 쏘고, 링이 빠지고, 불꽃이 튀는. 게임 그대로라 그걸 썼습니다.
+
 ### 카드에 두께가 있습니다
 
 앞면 뒤 **32px** 에 판(`.gcard-slab`)을 하나 두었습니다. `preserve-3d` 안이라 커서로 기울이면
@@ -359,7 +365,7 @@ base64 를 만질 필요가 없는 유일한 길입니다.
 
 | 카드 | 엠블럼 | 움직임 |
 | :--- | :--- | :--- |
-| Aimbooster | 분홍 네온 크로스헤어 | 팔과 모서리 눈금이 안으로 모이고 중심이 밝아진다 |
+| Aimbooster | 종이 과녁 + 앰버 타이머 링 | 게임처럼 링이 12시부터 시계 방향으로 빠졌다가 다시 찬다 |
 | Coming Soon | 작은 아케이드 캐비닛 | 꺼진 화면이 앰버로 켜진다 |
 
 **포즈 네 장을 한 번에 주문합니다.** `create_1_direction_object(size=64, item_descriptions=[...])`
@@ -370,7 +376,13 @@ base64 를 만질 필요가 없는 유일한 길입니다.
 되감아 돌아오므로 시작과 끝이 같은 그림이고, 이음매가 생길 수 없습니다.
 `jump-none` 이라야 0% 와 100% 를 모두 밟습니다 — 그냥 `steps(9)` 면 마지막 프레임을 건너뜁니다.
 
+**Aimbooster 의 링은 게임 셰이더 식으로 찍습니다** (`tools/emblem-timer.py`). 과녁은 PixelLab 후보 16장 중
+게임 과녁과 가장 닮은 것이고, 링은 aimbooster-unity `Target.shader` 와 같은 규칙(과녁 반지름의 1.1~1.2배,
+`#FFC733`, 어두운 1px 테두리, 지나간 쪽은 25%)이라 게임에서 보던 그 링이 됩니다. 가는 링은 아래처럼 모델이 붙잡지 못합니다.
+
 #### v3 보간은 가느다란 그림에서 무너집니다
+
+(예전 Aimbooster 엠블럼 — 분홍 네온 크로스헤어 — 을 만들 때 얘기입니다.)
 
 아케이드 캐비닛(덩어리가 큰 그림)은 `animate_object(mode='v3', end_frame_base64=...)` 로
 9프레임이 깔끔하게 나왔습니다. 그런데 **크로스헤어는 못 썼습니다** — 프레임마다 획이 통째로
@@ -590,7 +602,8 @@ CSS 가 직접 보간해 주고, JS 는 커서가 독 근처에 들어왔는지�
 
 | 파일 | 만든 법 |
 | :--- | :--- |
-| `public/art/aimbooster.png` · `coming-soon.png` | `create_image_pixflux` 400×248 (크기는 4의 배수여야 한다) |
+| `public/art/aimbooster-anim.png` | `create_image_pro` 256×160 (게임 캡처를 구도 참고로) → `animate_image` 9프레임 |
+| `public/art/coming-soon.png` | `create_image_pixflux` 400×248 (크기는 4의 배수여야 한다) |
 | `public/art/card-back.png` | 같은 도구 64×64, 카드 뒷면 타일 무늬 |
 | `public/fonts/studio-marquee.ttf` | `create_font` 32px Bold — 카드 레터링 전용 |
 | `public/art/emblem-*.png` | `create_1_direction_object` 로 포즈 4장 → 9프레임 시트 (아래 참고) |
