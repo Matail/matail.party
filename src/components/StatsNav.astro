@@ -1,0 +1,40 @@
+---
+/* 통계 탭 안의 버튼 묶음 — 개요(OVERVIEW) · 게임별 페이지. 블로그의 BlogNav 와 같은 부품(global.css 의 .btn)이고,
+   글씨도 BlogNav 처럼 영문이다 (README "누르는 것의 글씨는 영문입니다").
+   공개 통계가 있는 게임(games 의 stats: true)만 올라온다. */
+import { getCollection } from 'astro:content';
+
+interface Props {
+	/** 지금 보고 있는 페이지. 'all' 이면 개요(/stats/) */
+	active?: string;
+}
+const { active = 'all' } = Astro.props;
+
+const games = (await getCollection('games', (g) => g.data.stats)).sort(
+	(a, b) => b.data.releaseDate.valueOf() - a.data.releaseDate.valueOf(),
+);
+---
+
+<nav class="snav" aria-label="통계">
+	<a href="/stats/" class:list={['btn', { on: active === 'all' }]} aria-current={active === 'all' ? 'page' : undefined} title="개요">OVERVIEW</a>
+	{
+		games.map((g) => (
+			<a
+				href={`/stats/${g.id}/`}
+				class:list={['btn', { on: active === g.id }]}
+				aria-current={active === g.id ? 'page' : undefined}
+			>
+				{g.data.title}
+			</a>
+		))
+	}
+</nav>
+
+<style>
+	/* 버튼 자체는 global.css 의 .btn. 여기서는 줄 세우기만 한다 */
+	.snav {
+		display: flex;
+		flex-wrap: wrap;
+		gap: var(--s-2);
+	}
+</style>

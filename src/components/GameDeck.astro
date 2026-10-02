@@ -39,7 +39,7 @@ const cards = games.map((game, i) => {
 	<div class="deck-wash" aria-hidden="true"></div>
 
 	<div class="deck-stage" data-stage>
-		<button class="deck-arrow prev" type="button" data-prev aria-label="이전 카드">
+		<button class="deck-arrow prev corners" type="button" data-prev aria-label="이전 카드">
 			<svg viewBox="0 0 40 24" aria-hidden="true"><path d="M13 4 3 12l10 8M3 12h34" /></svg>
 		</button>
 
@@ -62,7 +62,7 @@ const cards = games.map((game, i) => {
 
 							<!-- 앞면. 글씨가 없으므로 면 전체가 게임으로 가는 링크다. -->
 							<a
-								class="gcard-face gcard-front"
+								class="gcard-face gcard-front btn-host"
 								href={c.disabled ? undefined : c.d.url}
 								target={!c.disabled && c.d.type === 'external' ? '_blank' : undefined}
 								rel={!c.disabled && c.d.type === 'external' ? 'noopener noreferrer' : undefined}
@@ -98,16 +98,12 @@ const cards = games.map((game, i) => {
 									))}
 								</div>
 
-								<!-- 눌리는 버튼. 앞면 전체가 이미 링크이므로 이건 "보이는 손잡이"다 -->
+								<!-- 주 버튼 (global.css 의 .btn.primary). 앞면 전체가 이미 링크이므로 이건 "보이는 손잡이"다 —
+								     앞면(.btn-host)에 커서가 오면 이 버튼이 뒤집힌다. 칸 색은 카드 색 -->
 								<span class="gc-cta" data-cap aria-hidden="true">
-									<span class:list={['gc-play', { off: c.disabled }]} data-cta>
-										<span class="gc-play-cap">
+									<span class="gc-play" data-cta>
+										<span class:list={['btn primary gc-play-cap', { off: c.disabled }]}>
 											{c.disabled ? '준비 중' : 'PLAY'}
-											{!c.disabled && (
-												<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-													<polygon points="7 4 20 12 7 20 7 4" />
-												</svg>
-											)}
 										</span>
 									</span>
 								</span>
@@ -141,7 +137,7 @@ const cards = games.map((game, i) => {
 			</div>
 		</div>
 
-		<button class="deck-arrow next" type="button" data-next aria-label="다음 카드">
+		<button class="deck-arrow next corners" type="button" data-next aria-label="다음 카드">
 			<svg viewBox="0 0 40 24" aria-hidden="true"><path d="M27 4l10 8-10 8M37 12H3" /></svg>
 		</button>
 	</div>
@@ -483,10 +479,9 @@ const cards = games.map((game, i) => {
 		will-change: transform, opacity;
 	}
 
-	/* --- 눌리는 버튼 ---
-	   레퍼런스(reijowrites 의 "Confirm?")처럼 두께가 있는 물리 버튼이다.
-	   바닥판은 제자리에 있고 뚜껑만 위로 떠 있다가, 누르면 바닥까지 내려앉는다.
-	   높이를 바꾸지 않고 뚜껑을 transform 으로만 움직이므로 레이아웃이 흔들리지 않는다. */
+	/* --- 버튼 ---
+	   사이트 공통 주 버튼(global.css 의 .btn.primary)을 그대로 쓴다. 여기서는 자리와 카드 색만 정한다.
+	   칸은 카드 고유색, 면은 키아트 위에서도 글씨가 읽히게 거의 불투명한 어두운 판(+ 뒤를 흐림). */
 	/* 자리를 잡는 껍데기. 등장 연출(playEnter)이 이 요소를 맡는다. */
 	.gc-cta {
 		position: absolute;
@@ -495,134 +490,33 @@ const cards = games.map((game, i) => {
 		pointer-events: none;
 	}
 
-	/* 커서 시차가 맡는 요소.
-	   여기에 filter 를 걸면 안 된다 — filter 는 backdrop-root 를 만들어서
-	   안쪽 뚜껑의 backdrop-filter 가 카드 그림을 못 보게 된다. 그림자는 바닥판이 낸다. */
+	/* 커서 시차가 맡는 요소 (pointer.js). transform 은 스크립트 몫이라 여기서 건드리지 않는다.
+	   그림자는 여기서 낸다 — 버튼(.btn)의 면에 filter 를 걸면 backdrop-filter 가 키아트를 못 본다. */
 	.gc-play {
 		will-change: transform;
 		position: relative;
 		display: inline-block;
-		border-radius: var(--r-full);
+		box-shadow: 0 12px 22px -10px rgba(0, 0, 0, 0.7);
 	}
 
-	/* 바닥판(옆면). 뚜껑이 떠 있는 만큼만 아래로 드러난다. */
-	.gc-play::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		background: rgba(var(--accent-rgb), 0.13);
-		box-shadow:
-			inset 0 0 0 1px rgba(var(--accent-rgb), 0.3),
-			0 10px 18px rgba(0, 0, 0, 0.5);
-		transition: box-shadow 0.24s var(--ease-out);
+	/* .gc-play 를 앞에 붙여 공통 .btn.primary 보다 확실히 앞서게 한다 (스타일 순서에 기대지 않게) */
+	.gc-play .gc-play-cap {
+		--btn-accent: var(--accent);
+		--btn-fill: rgba(12, 12, 18, 0.8);
+		letter-spacing: 0.06em;
+		backdrop-filter: blur(14px) saturate(160%);
+		-webkit-backdrop-filter: blur(14px) saturate(160%);
 	}
 
-	/* 뚜껑. 맑은 유리 — 자기 색이 없고, 뒤의 키아트를 흐려서 그대로 통과시킨다.
-	   (예전에는 카드 색을 40% 로 덮어서 색유리처럼 보였다.)
+	/* 준비 중인 카드는 눌리지 않는다 — 칸은 꺼진 회색 */
+	.gc-play .gc-play-cap.off { --btn-fill: rgba(14, 14, 20, 0.72); }
 
-	   유리로 읽히게 하는 건 결국 가장자리다 — 윗변에 닿는 빛, 테두리 한 줄, 아랫변의 어두운 선.
-	   글씨는 어떤 그림 위에서도 읽혀야 한다. 흰 막을 12% 로 낮추고 어두운 막을 20% 로 올려서,
-	   키아트를 실제로 재 보면 흰 글씨 대비가 5.7:1 나온다 (16%/16% 일 때는 4.4:1 로 기준 미달이었다). */
-	.gc-play-cap {
-		position: relative;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.6rem 1.25rem 0.62rem;
-		border-radius: inherit;
-		font-size: 0.82rem;
-		font-weight: 800;
-		letter-spacing: 0.1em;
-		color: #fff;
-		text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
-		background:
-			linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.03) 52%, rgba(255, 255, 255, 0.06) 100%),
-			rgba(8, 8, 14, 0.2);
-		backdrop-filter: blur(16px) saturate(185%) brightness(1.04);
-		-webkit-backdrop-filter: blur(16px) saturate(185%) brightness(1.04);
-		box-shadow:
-			inset 0 1px 0 rgba(255, 255, 255, 0.5),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.2),
-			inset 0 -1px 0 rgba(0, 0, 0, 0.28);
-		/* 떠 있는 높이 */
-		transform: translateY(-6px);
-		transition:
-			transform 0.16s var(--ease-out),
-			background 0.24s var(--ease-soft),
-			box-shadow 0.24s var(--ease-soft);
-	}
-
-	/* 유리에 비스듬히 스치는 빛 한 줄 */
-	.gc-play-cap::after {
-		content: '';
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		pointer-events: none;
-		background: linear-gradient(105deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 38%);
-	}
-
-	/* 투명 효과를 줄이길 원하면 유리를 걷고 불투명한 판으로 바꾼다.
-	   흐림이 빠지면 글씨가 그림 위에 그대로 놓이므로 바닥을 진하게 깐다. */
+	/* 투명 효과를 줄이길 원하면 흐림을 걷고 불투명한 판으로 */
 	@media (prefers-reduced-transparency: reduce) {
-		.gc-play-cap {
-			background: rgba(10, 10, 16, 0.86);
+		.gc-play .gc-play-cap {
+			--btn-fill: rgba(10, 10, 16, 0.96);
 			backdrop-filter: none;
 			-webkit-backdrop-filter: none;
-		}
-
-		.gc-play-cap::after { display: none; }
-	}
-
-	.gc-play svg { flex: none; opacity: 0.9; }
-
-	/* 카드 위에 커서가 오면 조금 더 떠오르고, 누르면 바닥까지 내려앉는다 */
-	.gcard-front:hover .gc-play-cap {
-		transform: translateY(-7px);
-		background:
-			linear-gradient(180deg, rgba(255, 255, 255, 0.17) 0%, rgba(255, 255, 255, 0.045) 52%, rgba(255, 255, 255, 0.085) 100%),
-			rgba(8, 8, 14, 0.18);
-		box-shadow:
-			inset 0 1px 0 rgba(255, 255, 255, 0.62),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.26),
-			inset 0 -1px 0 rgba(0, 0, 0, 0.28);
-	}
-	.gcard-front:hover .gc-play::before {
-		box-shadow:
-			inset 0 0 0 1px rgba(var(--accent-rgb), 0.42),
-			0 14px 22px rgba(0, 0, 0, 0.55);
-	}
-	.gcard-front:active .gc-play-cap { transform: translateY(-1px); }
-	.gcard-front:active .gc-play::before {
-		box-shadow:
-			inset 0 0 0 1px rgba(var(--accent-rgb), 0.42),
-			0 4px 8px rgba(0, 0, 0, 0.45);
-	}
-
-	/* 준비 중인 카드는 눌리지 않는다 */
-	.gc-play.off::before {
-		background: rgba(255, 255, 255, 0.05);
-		box-shadow:
-			inset 0 0 0 1px rgba(255, 255, 255, 0.09),
-			0 10px 18px rgba(0, 0, 0, 0.5);
-	}
-	.gc-play.off .gc-play-cap {
-		background: rgba(14, 14, 20, 0.5);
-		color: var(--text-dim);
-		font-weight: 700;
-		text-shadow: none;
-		box-shadow:
-			inset 0 1px 0 rgba(255, 255, 255, 0.1),
-			inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-	}
-
-	/* 투명 효과를 줄이길 원하면 채워진 버튼으로 돌려준다 */
-	@media (prefers-reduced-transparency: reduce) {
-		.gc-play-cap {
-			backdrop-filter: none;
-			-webkit-backdrop-filter: none;
-			background: rgba(10, 10, 16, 0.94);
 		}
 	}
 
@@ -773,7 +667,9 @@ const cards = games.map((game, i) => {
 		cursor: pointer;
 		opacity: 0.34;
 		/* transform 과 opacity 는 pointer.js 의 자석이 독점한다 — 여기서 트랜지션을 걸면 두 겹으로 밀린다 */
-		transition: color 0.3s var(--ease-soft);
+		transition: color 0.3s var(--ease-soft), --btn-k 0.3s var(--ease-soft);
+		/* 버튼 레퍼런스의 꺾쇠(.corners) — 쉴 때는 숨고 커서가 오면 전등색으로 켜진다 */
+		--btn-k: transparent;
 		will-change: transform, opacity;
 	}
 	.deck-arrow svg {
@@ -787,7 +683,9 @@ const cards = games.map((game, i) => {
 	}
 	.deck-arrow.prev { left: -6px; }
 	.deck-arrow.next { right: -6px; }
-	.deck-arrow:hover { color: var(--text); }
+	.deck-arrow:hover,
+	.deck-arrow:focus-visible { color: var(--text); --btn-k: var(--lamp); }
+	.deck-arrow:focus-visible { border-radius: 0; }
 	.deck-arrow[disabled] { opacity: 0.1; cursor: default; }
 
 	/* ==================================================================
@@ -953,7 +851,7 @@ const cards = games.map((game, i) => {
 		.deck-arrow.next { right: -8px; }
 		/* 카드 위에 겹치므로 배경을 조금 깔아야 보인다 */
 		.deck-arrow {
-			border-radius: var(--r-full);
+			--btn-k: rgba(237, 235, 230, 0.4);
 			background: rgba(6, 6, 11, 0.55);
 			backdrop-filter: blur(6px);
 			-webkit-backdrop-filter: blur(6px);

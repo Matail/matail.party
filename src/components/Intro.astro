@@ -36,7 +36,7 @@ import Brand from './Brand.astro';
 			<span class="dot"></span>
 			<span class="label">불 켜는 중…</span>
 		</p>
-		<button type="button" class="skip" id="intro-skip">
+		<button type="button" class="btn skip" id="intro-skip">
 			건너뛰기 <kbd>ESC</kbd>
 		</button>
 	</div>
@@ -262,39 +262,21 @@ import Brand from './Brand.astro';
 		animation: boot-pulse 1.6s var(--ease-soft) infinite;
 	}
 
+	/* 모양은 사이트 공통 보조 버튼(global.css 의 .btn). 여기서는 자리와 등장만 */
 	.skip {
 		position: absolute;
 		right: clamp(1rem, 3vw, 2rem);
 		bottom: clamp(1rem, 3vw, 2rem);
 		pointer-events: auto;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.5rem 0.9rem;
-		border-radius: 999px;
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		background: rgba(255, 255, 255, 0.03);
-		color: #85838e;
-		font-family: var(--font-sans);
-		font-size: 0.78rem;
-		cursor: pointer;
 		opacity: 0;
 		animation: skip-in 0.6s var(--ease-out) 1.2s forwards;
-		transition: color 0.25s, border-color 0.25s, background 0.25s;
 		z-index: 3;
-	}
-
-	.skip:hover {
-		color: #edebe6;
-		border-color: rgba(255, 180, 70, 0.4);
-		background: rgba(255, 180, 70, 0.08);
 	}
 
 	.skip kbd {
 		font-family: var(--font-mono);
 		font-size: 0.62rem;
 		padding: 1px 5px;
-		border-radius: 4px;
 		border: 1px solid rgba(255, 255, 255, 0.12);
 		color: #65646f;
 	}
@@ -304,7 +286,6 @@ import Brand from './Brand.astro';
 	}
 
 	@media (max-width: 560px) {
-		.skip { font-size: 0.72rem; padding: 0.45rem 0.75rem; }
 		.boot-name { font-size: 1.2rem; }
 		.boot-bar { width: 140px; }
 	}

@@ -28,10 +28,10 @@ const related = [...sameLine, ...all.filter((p) => p.data.category !== d.categor
 
 <Layout title={`${d.title} · Matail`} description={d.description} width="wide" fit={true}>
 	<header class="head" data-reveal>
-		<a href="/blog" class="back">← ALL POSTS</a>
+		<a href="/blog" class="btn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>ALL POSTS</a>
 
 		<div class="meta">
-			<a class="pill" href={`/blog/c/${d.category}/`} title={cat.label}>{cat.en}</a>
+			<a class="btn" href={`/blog/c/${d.category}/`} title={cat.label}>{cat.en}</a>
 			<time datetime={d.pubDate.toISOString()}>{fmtDate(d.pubDate)}</time>
 			{d.updatedDate && <span class="updated">수정 {fmtDate(d.updatedDate)}</span>}
 			<span class="mins">{mins}분</span>
@@ -82,7 +82,7 @@ const related = [...sameLine, ...all.filter((p) => p.data.category !== d.categor
 								</li>
 							))}
 						</ul>
-						<a class="pill" href="/blog">ALL POSTS</a>
+						<a class="btn" href="/blog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg>ALL POSTS</a>
 					</aside>
 				)
 			}
@@ -103,18 +103,6 @@ const related = [...sameLine, ...all.filter((p) => p.data.category !== d.categor
 		flex-wrap: wrap;
 		padding: 0 0 clamp(0.75rem, 2vw, 1.25rem);
 	}
-
-	.back {
-		display: inline-flex;
-		align-items: center;
-		min-height: 36px;
-		font-family: var(--font-mono);
-		font-size: var(--fs-mono);
-		letter-spacing: 0.06em;
-		color: var(--text-mute);
-	}
-
-	.back:hover { color: var(--lamp); }
 
 	.meta {
 		display: flex;

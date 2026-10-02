@@ -1,7 +1,7 @@
 ---
 /* 블로그 첫 화면 — 홈과 같은 규칙이다. 세로로 쌓지 않고 한 화면에 담는다.
    글은 옆으로 늘어선 선반 위에 서고, 넘치면 좌우로만 움직인다.
-   줄(분류)은 위쪽 알약이 맡는다 — 누르면 그 줄만 모인 선반으로 간다. */
+   줄(분류)은 위쪽 버튼 줄이 맡는다 — 누르면 그 줄만 모인 선반으로 간다. */
 import { getCollection } from 'astro:content';
 import Layout from '../../layouts/Layout.astro';
 import BlogNav from '../../components/BlogNav.astro';
@@ -45,7 +45,7 @@ const rest = posts.filter((p) => p.id !== featured?.id).sort(byNewest);
 </Layout>
 
 <style>
-	/* 머리에 남은 건 분류 알약뿐이다. 여기서 아낀 세로가 그대로 카드 높이가 된다 */
+	/* 머리에 남은 건 분류 버튼뿐이다. 여기서 아낀 세로가 그대로 카드 높이가 된다 */
 	.head {
 		display: flex;
 		justify-content: center;
