@@ -38,7 +38,7 @@ export type PublicStats = Partial<Omit<Stats, "active" | "marks">> & { day: stri
 
 /** 공개 통계 페이지의 카드와 각 카드가 쓰는 값. 관리자 설정 streams/public_cards 로 켜고 끈다 */
 export const PUBLIC_CARDS = {
-  tiles: ["playing", "todayFinished", "todayBest", "finished"],
+  tiles: ["playing", "todayFinished", "todayBest", "best", "finished"],
   funnel: ["started", "finished", "won"],
   bins: ["bins", "levels", "finished"],
   radar: ["levels"],

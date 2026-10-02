@@ -41,6 +41,7 @@ assert.equal("active" in view || "marks" in view || "recent" in view || "clients
 assert.equal(JSON.stringify(view).includes("g3"), false);
 assert.equal(publicView(s, t0 + 31 * 60_000).playing, 0); // 30분 넘은 판은 빠진다
 assert.deepEqual(view.cards, ["tiles", "funnel", "bins", "radar", "gauge", "heat"]); // 기본은 전부
+assert.equal(view.best, 42);                     // 역대 최고 점수는 요약 칸(tiles)과 같이 나간다 (통계 탭 개요)
 
 // 관리자가 끈 카드의 값은 공개 응답에서도 빠진다 (다른 켜진 카드가 쓰는 값은 남는다)
 const some = publicView(s, t0, ["radar", "heat"]);

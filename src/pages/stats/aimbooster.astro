@@ -5,6 +5,7 @@
    "내 위치" 는 이 브라우저에서 한 판들(게임이 localStorage 에 둔 요약)로만 그린다 — 서버에 내 기록을 묻지 않는다.
    카드 모양 · 색은 STREAMS 통계 페이지(stats/streams.astro)와 같다. */
 import Layout from '../../layouts/Layout.astro';
+import StatsNav from '../../components/StatsNav.astro';
 ---
 
 <Layout
@@ -14,6 +15,7 @@ import Layout from '../../layouts/Layout.astro';
 	image="/og/aimbooster.png"
 >
 	<div class="live" data-live>
+		<StatsNav active="aimbooster" />
 		<header class="hero">
 			<h1>지금 사람들은<br />이만큼 버티고 있어요</h1>
 		</header>
@@ -73,6 +75,7 @@ import Layout from '../../layouts/Layout.astro';
 		padding-bottom: 4rem;
 	}
 
+	.live > :global(.snav) { max-width: 960px; margin: 0 auto; padding-top: clamp(1rem, 3vw, 2rem); }
 	.hero { text-align: center; padding: clamp(2rem, 6vw, 4rem) 0 2rem; }
 	.hero h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.2rem); }
 

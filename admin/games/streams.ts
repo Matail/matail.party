@@ -208,7 +208,7 @@ export const streams: GameAdmin = {
     { key: "collect", type: "toggle", default: true, label: "데이터 수집",
       note: "끄면 게임은 그대로 되지만 판·턴·행동 기록과 실시간 집계를 남기지 않아요. 최대 30초 뒤 적용 (이미 시작한 판은 시작할 때 설정을 따라요)." },
     { key: "public_cards", type: "multi", default: ["tiles", "funnel", "bins", "radar", "gauge", "heat"], label: "공개 통계 카드",
-      note: "/stats/streams/ 에 보일 카드. 끈 카드의 숫자는 공개 응답에서도 빠져요.",
+      note: "/stats/streams/ 에 보일 카드. 통계 탭 개요(/stats/)도 같이 따라요. 끈 카드의 숫자는 공개 응답에서도 빠져요.",
       options: [
         { id: "tiles", label: "요약 칸 (두는 중·오늘·전체)" },
         { id: "funnel", label: "판 흐름" },

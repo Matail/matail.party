@@ -156,7 +156,7 @@ x-streams-client: <종류>/<버전>
 
 ## 실시간 통계 — `GET /api/streams/stats` · `GET /api/streams/live`
 
-공개 페이지 `/stats/streams/` 가 쓴다. 집계는 Durable Object `StatsHub` 하나에 있고(`worker/streams/statshub.ts`, 계산은 `stats.ts`),
+공개 페이지 `/stats/streams/` 와 통계 탭 개요 `/stats/` 가 쓴다. 집계는 Durable Object `StatsHub` 하나에 있고(`worker/streams/statshub.ts`, 계산은 `stats.ts`),
 `/start` · 첫 `/move` · 마지막 `/move` 때 갱신된다. **D1 을 실시간으로 조회하지 않는다** — DO 가 처음 뜰 때만 D1 에서 한 번 센다.
 
 - `GET /api/streams/stats` → 지금 스냅숏 (5초 캐시)
@@ -169,7 +169,7 @@ x-streams-client: <종류>/<버전>
 {
   "day": "2026-09-30", "cards": ["tiles", "funnel", "bins", "radar", "gauge", "heat"],
   "started": 81, "finished": 66, "won": 21, "drawn": 4,
-  "todayFinished": 8, "todayBest": 49, "playing": 1,
+  "todayFinished": 8, "todayBest": 49, "best": 61, "playing": 1,
   "levels": [{ "games": 15, "won": 3, "drawn": 1, "me": 221, "ai": 337 }, "… 5개 (입문 → 마스터)"],
   "bins": [4, 13, 17, 15, 13, 4, 0, 0, 0, 0, 0],
   "heat": ["600칸: (첫 카드 - 1) × 20 + 칸"],
