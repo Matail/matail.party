@@ -203,6 +203,7 @@ const ICON: Record<Event['kind'], string> = {
   done: `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="${C.teal}" stroke-width="1.5"/><path d="M4.9 8.2l2 2 4.2-4.3" fill="none" stroke="${C.teal}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
   many: `<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="none" stroke="${C.teal}" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="${C.teal}" stroke-width="1.6" stroke-linecap="round"/></svg>`,
 };
+const UP = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>';
 const KIND_TEXT: Record<Event['kind'], string> = { start: '시작', win: '사람 승', lose: 'AI 승', draw: '무승부', done: '끝남', many: '여러 판' };
 
 function ago(ms: number) {
@@ -444,7 +445,7 @@ export function startOverview(root: HTMLElement) {
     tbody.innerHTML = rows.map((e) => {
       const g = gameOf(e.game);
       const status = e.best ? `<span class="badge rec">${ICON[e.kind]}오늘 최고 기록</span>` : `<span class="badge">${ICON[e.kind]}${KIND_TEXT[e.kind]}</span>`;
-      const acts = `<span class="acts">${e.best ? `<a class="pill on" href="${esc(g.url)}" title="나도 도전">PLAY</a>` : ''}<a class="pill icon" href="/stats/${g.id}/" aria-label="${esc(g.title)} 통계">↗</a></span>`;
+      const acts = `<span class="acts">${e.best ? `<a class="btn primary sm" href="${esc(g.url)}" title="나도 도전">PLAY</a>` : ''}<a class="btn sm icon" href="/stats/${g.id}/" aria-label="${esc(g.title)} 통계">${UP}</a></span>`;
       return `<tr class="${e.at > now - 1600 ? 'fresh' : ''}">
         <td class="when" data-at="${e.at}">${ago(now - e.at)}</td>
         <td><span class="gname"><i class="g" style="--g:${esc(g.accent)}"></i>${esc(g.title)}</span></td>

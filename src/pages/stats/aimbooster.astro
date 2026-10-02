@@ -56,7 +56,7 @@ import StatsNav from '../../components/StatsNav.astro';
 			</article>
 		</section>
 
-		<p class="play"><a href="/games/aimbooster/">게임 하러 가기 →</a></p>
+		<p class="play"><a class="btn primary" href="/games/aimbooster/" title="게임 하러 가기">PLAY AIMBOOSTER</a></p>
 
 		<div class="tip" data-tip hidden></div>
 	</div>
@@ -92,7 +92,7 @@ import StatsNav from '../../components/StatsNav.astro';
 	.me :global(.me-top) { font-size: 0.85rem; font-weight: 600; color: var(--me); }
 	.me :global(.me-note), .me :global(.me-empty) { grid-column: 1 / -1; margin: 0; font-size: 0.8rem; color: var(--ink-3); }
 	.me :global(.me-empty) { padding: 14px 16px; border-radius: 14px; border: 1px dashed var(--line); color: var(--ink-2); }
-	.me :global(a), .play a { color: var(--me); }
+	.me :global(a) { color: var(--me); }
 
 	.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 960px; margin: 0 auto; }
 	.card { padding: 12px; border-radius: 20px; background: var(--card); border: 1px solid var(--line); }

@@ -1,6 +1,6 @@
 ---
 /* 통계 탭 개요 — 공개 통계가 있는 게임(games 의 stats: true)을 한 화면에 모은 대시보드.
-   게임마다 자세한 페이지는 /stats/<id>/ 에 따로 있고, 위 알약(StatsNav)과 카드의 ↗ 로 간다.
+   게임마다 자세한 페이지는 /stats/<id>/ 에 따로 있고, 위 버튼 줄(StatsNav)과 카드의 ↗ 로 간다.
    숫자는 게임별 실시간 통계와 같은 웹소켓(/api/streams/live · /api/aimbooster/live)에서 받아 그리기만 한다 (scripts/stats-overview.ts).
    카드 모양 · 색은 게임별 통계 페이지와 같다. STREAMS 카드는 관리자가 끈 공개 카드(public_cards)를 따라 숨는다. */
 import { getEntry } from 'astro:content';
@@ -30,7 +30,7 @@ const games = [streams, aim];
 			<article class="panel span-2" data-card="score" style={`--g: ${streams.accent}`}>
 				<div class="p-head">
 					<span class="p-label"><i class="g"></i>{streams.title} · 난이도별 평균 점수</span>
-					<a class="go" href={`/stats/${streams.id}/`} aria-label={`${streams.title} 통계 자세히`}>↗</a>
+					<a class="btn sm icon go" href={`/stats/${streams.id}/`} aria-label={`${streams.title} 통계 자세히`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg></a>
 				</div>
 				<div class="p-top">
 					<div class="p-value"><span data-v="sAvg">–</span><span class="unit">점 사람 평균</span></div>
@@ -46,7 +46,7 @@ const games = [streams, aim];
 			<article class="panel" data-card="reaction" style={`--g: ${aim.accent}`}>
 				<div class="p-head">
 					<span class="p-label"><i class="g"></i>반응 시간</span>
-					<a class="go" href={`/stats/${aim.id}/`} aria-label={`${aim.title} 통계 자세히`}>↗</a>
+					<a class="btn sm icon go" href={`/stats/${aim.id}/`} aria-label={`${aim.title} 통계 자세히`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg></a>
 				</div>
 				<div class="p-top">
 					<div class="p-value"><span data-v="aReaction">–</span><span class="unit">ms</span></div>
@@ -62,7 +62,7 @@ const games = [streams, aim];
 			<article class="panel" data-card="survival" style={`--g: ${aim.accent}`}>
 				<div class="p-head">
 					<span class="p-label"><i class="g"></i>버틴 시간</span>
-					<a class="go" href={`/stats/${aim.id}/`} aria-label={`${aim.title} 통계 자세히`}>↗</a>
+					<a class="btn sm icon go" href={`/stats/${aim.id}/`} aria-label={`${aim.title} 통계 자세히`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg></a>
 				</div>
 				<div class="p-top">
 					<div class="p-value"><span data-v="aSurvival">–</span><span class="unit">초</span></div>
@@ -88,7 +88,7 @@ const games = [streams, aim];
 			<article class="panel" data-card="win" style={`--g: ${streams.accent}`}>
 				<div class="p-head">
 					<span class="p-label"><i class="g"></i>사람이 AI 를 이긴 비율</span>
-					<a class="go" href={`/stats/${streams.id}/`} aria-label={`${streams.title} 통계 자세히`}>↗</a>
+					<a class="btn sm icon go" href={`/stats/${streams.id}/`} aria-label={`${streams.title} 통계 자세히`}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8" /></svg></a>
 				</div>
 				<div class="p-value big"><span data-v="sWinRate">–</span><span class="unit">%</span></div>
 				<div class="meter" data-meter="win"></div>
@@ -126,10 +126,10 @@ const games = [streams, aim];
 		<section class="feed" aria-label="실시간 소식" data-reveal style="--reveal-delay: 180">
 			<div class="f-head">
 				<div class="f-tabs" role="group" aria-label="실시간 소식 — 게임 고르기">
-					<button type="button" class="pill on" data-filter="all" aria-pressed="true" title="모든 게임의 실시간 소식"><i class="live-dot" aria-hidden="true"></i>LIVE</button>
-					{games.map((g) => <button type="button" class="pill" data-filter={g.id} aria-pressed="false">{g.title}</button>)}
+					<button type="button" class="btn on" data-filter="all" aria-pressed="true" title="모든 게임의 실시간 소식"><i class="live-dot" aria-hidden="true"></i>LIVE</button>
+					{games.map((g) => <button type="button" class="btn" data-filter={g.id} aria-pressed="false">{g.title}</button>)}
 				</div>
-				<a class="pill" href="/" title="게임 하러 가기">PLAY ↗</a>
+				<a class="btn primary" href="/" title="게임 하러 가기">PLAY</a>
 			</div>
 			<div class="panel table">
 				<table>
@@ -167,10 +167,10 @@ const games = [streams, aim];
 		padding-bottom: 4rem;
 	}
 
-	/* ── 머리: 알약 + 연결 상태 ── */
+	/* ── 머리: 버튼 줄 + 연결 상태 ── */
 	.bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: clamp(1rem, 3vw, 2rem) 0 16px; }
 	.status {
-		display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 999px;
+		display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px;
 		background: var(--card); border: 1px solid var(--line); font-size: 0.8rem; color: var(--ink-2); font-variant-numeric: tabular-nums;
 	}
 	.status i { width: 8px; height: 8px; border-radius: 50%; background: var(--ink-3); }
@@ -197,11 +197,10 @@ const games = [streams, aim];
 	.p-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; min-height: 22px; }
 	.p-label { display: inline-flex; align-items: center; gap: 7px; font-size: 0.8rem; color: var(--ink-2); min-width: 0; }
 	.dash :global(.g) { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--g, var(--ink-3)); }
-	.go {
-		flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%;
-		color: var(--ink-3); font-size: 0.8rem; transition: background var(--t-fast) var(--ease-soft), color var(--t-fast) var(--ease-soft);
-	}
-	.go:hover { background: rgba(255, 255, 255, 0.06); color: var(--ink); }
+	/* 카드 오른쪽 위 ↗ — 쉴 때는 꺾쇠까지 숨겨 화살표만, 카드에 커서가 오면 꺾쇠가 드러난다 */
+	.go { flex: none; margin: -4px -4px -4px 0; --btn-fill: transparent; }
+	.go:not(:hover, :focus-visible) { --btn-k: transparent; }
+	.panel:hover .go:not(:hover, :focus-visible) { --btn-k: rgba(237, 235, 230, 0.3); }
 
 	.p-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin: 2px 0 10px; }
 	.p-value { display: flex; align-items: baseline; gap: 6px; font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.2; }
@@ -258,7 +257,6 @@ const games = [streams, aim];
 	.f-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 	.f-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 	.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ai); }
-	.pill.on .live-dot { background: #8f1d1d; }
 
 	/* 줄은 스크립트가 그려 넣으므로(범위 밖) 표 안은 :global 로 */
 	.table { position: relative; padding: 4px 8px; overflow-x: auto; }
@@ -284,8 +282,6 @@ const games = [streams, aim];
 	tbody :global(.gname) { display: inline-flex; align-items: center; gap: 8px; }
 	tbody :global(.rec) { color: var(--lamp); font-weight: 600; }
 	tbody :global(.acts) { display: inline-flex; gap: 6px; justify-content: flex-end; }
-	tbody :global(.pill) { min-height: 28px; padding: 0 10px; font-size: 0.6875rem; }
-	tbody :global(.pill.icon) { width: 28px; padding: 0; justify-content: center; }
 
 	.note { margin: 10px 4px 2px; font-size: 0.72rem; color: var(--ink-3); }
 
@@ -310,7 +306,7 @@ const games = [streams, aim];
 		.table { padding: 0 4px; }
 		.table :global(th), .table :global(td) { padding: 9px 5px; }
 		.table :global(td .gname) { white-space: normal; }
-		.table :global(.c-go), .f-head > .pill { display: none; }
+		.table :global(.c-go), .f-head > .btn { display: none; }
 		.bar .status { width: 100%; justify-content: center; }
 	}
 </style>

@@ -1,6 +1,6 @@
 ---
 /* 사이트의 유일한 메뉴. 모든 페이지에서 같은 모습이다 —
-   쉴 때는 아이콘만 있는 동그란 알약, 커서를 올린 하나만 옆으로 늘어나며 이름이 드러난다.
+   쉴 때는 아이콘만 있는 각진 칸, 커서를 올린 하나만 옆으로 늘어나며 이름이 드러난다.
 
    아이콘은 이 사이트를 위해 직접 그렸다. 규칙은 하나 —
    24x24 격자, 선 굵기 1.7, 끝과 이음을 둥글게. 카드 옆 화살표와 같은 식구다. */
@@ -52,7 +52,7 @@ const links = [
 
 <footer class="rail" aria-label="사이트 메뉴" transition:persist="rail">
 	{links.map((l) => (
-		<a class="rail-item" href={l.href} data-astro-reload={l.href.includes('intro') ? true : undefined}>
+		<a class="rail-item corners" href={l.href} data-astro-reload={l.href.includes('intro') ? true : undefined}>
 			<span class="rail-icon" aria-hidden="true">
 				<svg viewBox="0 0 24 24"><Fragment set:html={l.icon} /></svg>
 			</span>
@@ -62,14 +62,16 @@ const links = [
 </footer>
 
 <style>
-	/* 쉴 때는 아이콘만 있는 동그란 알약. 커서를 올리면 그 알약만 옆으로 늘어나며
-	   이름이 드러난다. 늘어나는 건 max-width 라서 레이아웃이 흔들리지 않는다. */
+	/* 버튼 레퍼런스(global.css 의 .btn)를 아이콘 줄에 옮긴 것.
+	   쉴 때는 각진 정사각 칸에 아이콘 하나와 네 귀퉁이 꺾쇠(.corners)뿐이다.
+	   커서가 오면 주 버튼(.btn.primary)이 된다 — 아이콘 칸이 전등색으로 차고, 면이 밝게 뒤집히며 이름이 옆으로 나온다.
+	   늘어나는 건 max-width 라서 레이아웃이 흔들리지 않는다. */
 	.rail {
 		display: flex;
 		align-items: center;
 		justify-content: flex-end;
 		flex-wrap: wrap;
-		gap: 8px;
+		gap: 10px;
 		width: 100%;
 		max-width: var(--page);
 		margin: 0 auto;
@@ -77,41 +79,50 @@ const links = [
 	}
 
 	.rail-item {
+		position: relative;
 		display: inline-flex;
 		align-items: center;
 		/* 손가락으로 누르는 유일한 메뉴다. 44px 아래로 내리지 않는다 */
 		height: 44px;
 		min-width: 44px;
-		justify-content: center;
-		padding: 0 12px;
-		border-radius: var(--r-full);
-		border: 1px solid var(--border);
 		background: rgba(255, 255, 255, 0.035);
 		backdrop-filter: blur(10px);
 		-webkit-backdrop-filter: blur(10px);
 		color: var(--text-mute);
 		transition:
 			background var(--t-fast) var(--ease-soft),
-			border-color var(--t-fast) var(--ease-soft),
-			color var(--t-fast) var(--ease-soft);
+			color var(--t-fast) var(--ease-soft),
+			--btn-k var(--t-fast) var(--ease-soft);
 	}
 
-	/* 이름이 펼쳐지는 것 자체가 이미 큰 움직임이다. 여기서 알약까지 들면 한 번에 둘이 움직인다 */
+	/* 커서가 오면 꺾쇠는 걷히고 칸 전체가 버튼이 된다 */
 	.rail-item:hover,
 	.rail-item:focus-visible {
-		color: var(--lamp);
-		background: rgba(255, 180, 70, 0.1);
-		border-color: rgba(255, 180, 70, 0.34);
+		--btn-k: transparent;
+		background: var(--text);
+		color: var(--bg);
 	}
+
+	.rail-item:focus-visible { border-radius: 0; }
 
 	.rail-item:active { transform: translateY(1px); }
 
+	/* 아이콘 칸 = 주 버튼의 전등색 칸 */
 	.rail-icon {
 		display: grid;
 		place-items: center;
-		width: 18px;
-		height: 18px;
+		width: 44px;
+		height: 44px;
 		flex: none;
+		transition:
+			background var(--t-fast) var(--ease-soft),
+			color var(--t-fast) var(--ease-soft);
+	}
+
+	.rail-item:hover .rail-icon,
+	.rail-item:focus-visible .rail-icon {
+		background: var(--lamp);
+		color: #21160A;
 	}
 
 	.rail-icon svg {
@@ -126,25 +137,23 @@ const links = [
 
 	.rail-label {
 		max-width: 0;
-		padding-left: 0;
+		padding: 0;
 		opacity: 0;
 		overflow: hidden;
 		white-space: nowrap;
 		font-size: var(--fs-xs);
 		font-weight: 600;
 		letter-spacing: -0.01em;
-		color: var(--text);
 		transition:
 			max-width var(--t-slow) var(--ease-out),
-			padding-left var(--t-slow) var(--ease-out),
+			padding var(--t-slow) var(--ease-out),
 			opacity var(--t-base) var(--ease-soft) 60ms;
 	}
 
 	.rail-item:hover .rail-label,
 	.rail-item:focus-visible .rail-label {
 		max-width: 10rem;
-		padding-left: 7px;
-		padding-right: 2px;
+		padding: 0 14px 0 12px;
 		opacity: 1;
 	}
 
