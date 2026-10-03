@@ -74,6 +74,23 @@ my-site 는 Durable Object(`StatsHub`, `AimStatsHub`)를 써서 workers.dev 미�
    - 위 표(STREAMS+)와 나란히 보고에 적는다. 배포 뒤 모습은 Cloudflare Browser 스크린샷으로 남긴다.
 7. PR 은 열 수 있지만 머지하지 않는다 (0-8, 사용자 승인 뒤 오케스트레이터).
 
+## 0단계 확인 결과 (2026-10-03, feedme-unity `6e1aada`)
+
+| 파일 | 디스크 | STREAMS+ 대비 |
+|---|---|---|
+| `.wasm` | 21,274,124 | +16% |
+| `.data` | 9,364,913 | +20% (압축되지 않으므로 받는 양도 같다) |
+| `.framework.js` | 422,894 | +2% |
+| `.loader.js` | 26,982 | 같음 |
+| `index.html` | 9,275 | |
+
+합계 29.7 MiB, 25 MiB 넘는 파일 없음. 빈 장면인데도 `.wasm`·`.data` 가 STREAMS+ 보다 크다.
+
+- 로컬(`wrangler dev --local`) 200 / 307 / 404 확인, Claude Browser 에서 로딩 막대가 사라지고 Unity 시작, 콘솔 오류 수준 0건.
+- 콘솔: 경고 6건(`WebGL: INVALID_ENUM: getInternalformatParameter`), Unity 로그 2건
+  (`Hidden/CoreSRP/CoreCopy`, `Hidden/Universal/HDRDebugView` shader is not supported on this GPU) — 빈 장면에서는 화면에 영향이 없다. feedme-unity 가 확인한다.
+- Workers Builds 는 2026-10-03 05:54 UTC 부터 Cloudflare 장애("Workers Build failing to start")로 시작하지 못하는 구간이 있었다. 이때 푸시한 빌드는 `Build failed to initialize and was timed out` 이었고 내용과 무관하다.
+
 ## 홈 카드에 필요한 것 (0단계에서는 만들지 않는다)
 
 - `src/content/games/feedme.md` — `title`, `description`, `url: '/games/feedme/'`, `engine: 'unity'`, `color`(lime·pink·cyan), `accent`, `lettering`, `releaseDate`, `status`
