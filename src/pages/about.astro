@@ -33,6 +33,7 @@ const facts = [
 		<div
 			class="reader"
 			data-hscroll
+			data-center
 			tabindex="0"
 			role="region"
 			aria-label="소개 — 좌우로 넘겨 읽으세요"
@@ -164,6 +165,37 @@ const facts = [
 
 <script>
 	import { initHScroll } from '../scripts/hscroll.js';
-	initHScroll();
-	document.addEventListener('astro:page-load', () => initHScroll());
+
+	/* 내용이 한 화면에 다 들어가면 쓰인 칸만큼으로 폭을 줄여 가운데에 세운다.
+	   칸은 왼쪽부터 채워지므로, 그대로 두면 넓은 화면에서 글이 왼쪽 칸에만 몰린다.
+	   줄인 폭은 쓰인 칸들의 폭과 같아서 칸 수도, 칸 너비도 바뀌지 않는다.
+	   넘쳐서 옆으로 넘겨야 하면 손대지 않는다. */
+	function centerReaders() {
+		document.querySelectorAll<HTMLElement>('[data-hscroll][data-center]').forEach((el) => {
+			el.style.maxWidth = '';
+			el.style.marginInline = '';
+			if (el.scrollWidth - el.clientWidth > 1) return;
+
+			const range = document.createRange();
+			range.selectNodeContents(el);
+			const left = el.getBoundingClientRect().left;
+			let right = left;
+			for (const r of range.getClientRects()) right = Math.max(right, r.right);
+			const used = Math.ceil(right - left);
+			if (used <= 0 || used >= el.clientWidth) return;
+
+			el.style.maxWidth = `${used}px`;
+			el.style.marginInline = 'auto';
+		});
+	}
+
+	function init() {
+		initHScroll();
+		centerReaders();
+		if (document.fonts) document.fonts.ready.then(centerReaders);
+	}
+
+	init();
+	document.addEventListener('astro:page-load', init);
+	window.addEventListener('resize', centerReaders);
 </script>
