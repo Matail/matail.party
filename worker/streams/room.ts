@@ -19,6 +19,7 @@ export interface Seat {
   seat: number;               // 0~7, 방 안에서 바뀌지 않는다
   name: string;
   playerId: string | null;    // 기록용. 메시지로 내보내지 않는다
+  client: string | null;      // 들어올 때의 x-streams-client (기록 · 통계에서 에디터 판을 빼는 데)
   token: string;              // seatToken
   online: boolean;
   offlineSince: number | null;
@@ -41,6 +42,7 @@ export interface Room {
   seats: Seat[];              // seat 번호 순
   deck: number[];
   turn: number;               // playing: 이번 카드 번호 0~19
+  startedAt: number;          // 이번 판을 시작한 시각 (기록용)
   deadline: number;           // playing: 이번 카드 마감 시각
   emptySince: number | null;  // 연결된 자리가 하나도 없게 된 시각
   moves: Move[];              // 이번 판
@@ -105,17 +107,17 @@ export function normCode(raw: string): string | null {
 }
 
 export function newRoom(code: string, now: number): Room {
-  return { code, phase: "lobby", host: 0, seats: [], deck: [], turn: -1, deadline: 0, emptySince: now, moves: [] };
+  return { code, phase: "lobby", host: 0, seats: [], deck: [], turn: -1, startedAt: 0, deadline: 0, emptySince: now, moves: [] };
 }
 
 /** 방 만들기 · 들어가기 (HTTP). 웹소켓 hello 전이라 online 은 false */
-export function addSeat(room: Room, name: string, playerId: string | null, token: string, now: number): Seat | "room full" | "game in progress" {
+export function addSeat(room: Room, name: string, playerId: string | null, client: string | null, token: string, now: number): Seat | "room full" | "game in progress" {
   if (room.phase === "playing") return "game in progress";
   if (room.seats.length >= MAX_SEATS) return "room full";
   let n = 0;
   while (room.seats.some((s) => s.seat === n)) n++;
   const seat: Seat = {
-    seat: n, name, playerId, token, online: false, offlineSince: now, auto: false, timeouts: 0,
+    seat: n, name, playerId, client, token, online: false, offlineSince: now, auto: false, timeouts: 0,
     board: Array(N).fill(0), slot: -1, slotAuto: false, thinkMs: null, rank: 0,
   };
   room.seats.push(seat);
@@ -251,6 +253,7 @@ function start(room: Room, s: Seat, d: Deps): Out[] {
   room.deck = d.newDeck();
   room.moves = [];
   room.turn = 0;
+  room.startedAt = d.now;
   return [...stateAll(room, d.now), ...deal(room, d)];
 }
 

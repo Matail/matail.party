@@ -30,7 +30,7 @@ export interface Env {
 }
 
 /** 실시간 통계는 한 곳(DO 하나)에 모은다 */
-const hub = (env: Env) => env.STATS.get(env.STATS.idFromName("global"));
+export const hub = (env: Env) => env.STATS.get(env.STATS.idFromName("global"));
 
 const AI_MODEL = "v17-pikl";
 let aiPromise: Promise<StreamsAI> | null = null;
@@ -165,7 +165,7 @@ async function createRoom(req: Request, env: Env) {
   // 코드가 겹치면(이미 있는 방) 다른 코드로
   for (let i = 0; i < 5; i++) {
     const code = newCode(), seatToken = randomId(16);
-    const seat = await roomStub(env, code).create(code, name, playerId, seatToken);
+    const seat = await roomStub(env, code).create(code, name, playerId, clientOf(req), seatToken);
     if (seat !== null) return json({ code, seat, seatToken }, 201);
   }
   throw new Error("no free room code");
@@ -175,7 +175,7 @@ async function joinRoom(req: Request, env: Env, code: string) {
   const { name, playerId } = await seatRequest(req);
   if (!name) return json({ error: "invalid name" }, 400);
   const seatToken = randomId(16);
-  const seat = await roomStub(env, code).join(name, playerId, seatToken);
+  const seat = await roomStub(env, code).join(name, playerId, clientOf(req), seatToken);
   if (typeof seat === "string") return json({ error: seat }, seat === "room not found" ? 404 : 409);
   return json({ code, seat, seatToken });
 }

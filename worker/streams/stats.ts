@@ -30,6 +30,7 @@ export interface Stats {
   levels: LevelAgg[];              // [0] 이 입문(1)
   bins: number[];                  // 사람 점수 분포
   heat: number[];                  // 첫 수: (card-1)*SLOTS + slot
+  pvp?: number;                    // 끝난 멀티 방 판 (5단계). 옛 저장본엔 없다
   active: Record<string, number>;  // 진행 중 game_id → 시작 시각 (밖으로 내보내지 않음)
   marks: string[];                 // 이미 센 첫 수·결과 ("f:<id>" · "e:<id>") — 옛 토큰으로 다시 보낸 수를 두 번 세지 않게 (밖으로 내보내지 않음)
 }
@@ -38,7 +39,7 @@ export type PublicStats = Partial<Omit<Stats, "active" | "marks">> & { day: stri
 
 /** 공개 통계 페이지의 카드와 각 카드가 쓰는 값. 관리자 설정 streams/public_cards 로 켜고 끈다 */
 export const PUBLIC_CARDS = {
-  tiles: ["playing", "todayFinished", "todayBest", "best", "finished"],
+  tiles: ["playing", "todayFinished", "todayBest", "best", "finished", "pvp"],
   funnel: ["started", "finished", "won"],
   bins: ["bins", "levels", "finished"],
   radar: ["levels"],
@@ -62,7 +63,7 @@ export function emptyStats(now: number): Stats {
     day: dayOf(now), started: 0, finished: 0, won: 0, drawn: 0, best: 0,
     todayStarted: 0, todayFinished: 0, todayBest: 0,
     levels: Array.from({ length: LEVEL_COUNT }, () => ({ games: 0, won: 0, drawn: 0, me: 0, ai: 0 })),
-    bins: Array(BINS).fill(0), heat: Array(CARDS * SLOTS).fill(0), active: {}, marks: [],
+    bins: Array(BINS).fill(0), heat: Array(CARDS * SLOTS).fill(0), pvp: 0, active: {}, marks: [],
   };
 }
 
@@ -120,10 +121,16 @@ export function applyFinished(s: Stats, g: Finished, now: number) {
   delete s.active[g.id];
 }
 
+/** 끝난 멀티 방 판 하나 (에디터 판만 있던 판은 부르지 않는다). 같은 판을 두 번 세지 않는다 */
+export function applyPvp(s: Stats, gameId: string) {
+  if (!mark(s, `p:${gameId}`)) return;
+  s.pvp = (s.pvp ?? 0) + 1;
+}
+
 /** 밖으로 내보내는 모양: 진행 중 판 id 대신 개수만, 켜진 카드가 쓰는 값만 */
 export function publicView(s: Stats, now: number, cards: readonly PublicCard[] = ALL_CARDS): PublicStats {
   for (const [id, t] of Object.entries(s.active)) if (now - t > ACTIVE_MS) delete s.active[id];
-  const all: Record<string, unknown> = { ...s, playing: Object.keys(s.active).length };
+  const all: Record<string, unknown> = { ...s, playing: Object.keys(s.active).length, pvp: s.pvp ?? 0 };
   const out: Record<string, unknown> = { day: s.day, updatedAt: now, cards: [...cards] };
   for (const c of cards) for (const k of PUBLIC_CARDS[c] ?? []) out[k] = all[k];
   return out as PublicStats;
@@ -153,6 +160,14 @@ export async function countFromD1(db: D1Database, now: number): Promise<Stats> {
   for (const r of heat.results) {
     const card = Number(r.card), slot = Number(r.slot);
     if (card >= 1 && card <= CARDS && slot >= 0 && slot < SLOTS) s.heat[(card - 1) * SLOTS + slot] += Number(r.n);
+  }
+  // 멀티 판 (migration 0008). 테이블이 아직 없어도 나머지 집계는 살린다
+  try {
+    const row = await db.prepare(`SELECT count(*) AS n FROM streams_pvp_games p WHERE EXISTS (
+      SELECT 1 FROM streams_pvp_seats x WHERE x.game_id = p.id AND (x.client IS NULL OR x.client NOT LIKE 'unity-editor/%'))`).first<Row>();
+    s.pvp = Number(row?.n ?? 0);
+  } catch (e) {
+    console.error("pvp count failed", e);
   }
   return s;
 }

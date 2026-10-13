@@ -21,7 +21,7 @@ const errCode = (out: Out[]) => msgs(out, "error")[0]?.code;
 function lobby(n: number): Room {
   const room = newRoom("K7QM2X", now);
   for (let i = 0; i < n; i++) {
-    const s = addSeat(room, `p${i}`, `pid${i}`, `tok${i}`, now);
+    const s = addSeat(room, `p${i}`, `pid${i}`, i === 0 ? "unity-webgl/0.1.0" : null, `tok${i}`, now);
     assert.ok(typeof s === "object");
     connect(room, s.seat, deps());
   }
@@ -48,14 +48,14 @@ assert.equal(parseClient("null"), null);
 // ── 자리 ──
 {
   const room = lobby(8);
-  assert.equal(addSeat(room, "x", null, "tokx", now), "room full");
+  assert.equal(addSeat(room, "x", null, null, "tokx", now), "room full");
   assert.deepEqual(room.seats.map((s) => s.seat), [0, 1, 2, 3, 4, 5, 6, 7]);
   assert.equal(seatByToken(room, "tok3")?.seat, 3);
   // 대기실에서 나가면 자리가 비고, 빈 번호를 다시 쓴다
   const out = send(room, 3, { t: "leave" });
   assert.deepEqual(out[0], { to: 3, close: 1000 });
   assert.equal(room.seats.length, 7);
-  const s = addSeat(room, "y", null, "toky", now);
+  const s = addSeat(room, "y", null, null, "toky", now);
   assert.ok(typeof s === "object" && s.seat === 3);
 }
 
@@ -72,7 +72,9 @@ assert.equal(parseClient("null"), null);
   assert.deepEqual(room.seats.map((s) => s.seat), [0, 1]);
   assert.equal(room.phase, "playing");
   assert.deepEqual(msgs(out, "card"), [{ t: "card", turn: 0, card: 5, timeLeftMs: TURN_MS }]);
-  assert.equal(addSeat(room, "late", null, "tokl", now), "game in progress");
+  assert.equal(addSeat(room, "late", null, null, "tokl", now), "game in progress");
+  assert.equal(room.startedAt, now);
+  assert.equal(room.seats[0].client, "unity-webgl/0.1.0");
   assert.equal(errCode(send(room, 0, { t: "start" })), "bad_phase");
 }
 
@@ -228,7 +230,7 @@ assert.equal(parseClient("null"), null);
 // ── 방을 만들고 아무도 안 붙으면 10분 뒤 지움 ──
 {
   const room = newRoom("ABCDEF", now);
-  addSeat(room, "a", null, "t", now);
+  addSeat(room, "a", null, null, "t", now);
   assert.equal(nextAlarm(room), now + DROP_MS);
   assert.equal(expired(room, now + EMPTY_MS), true);
 }
