@@ -27,6 +27,12 @@ function corsHeaders(origin: string | null): Record<string, string> | null {
   };
 }
 
+/** 웹소켓은 CORS 를 거치지 않는다 — Origin 을 직접 본다. 같은 사이트 · localhost 만, 없으면(에디터 · 네이티브) 받는다 */
+export function originAllowed(req: Request): boolean {
+  const origin = req.headers.get("origin");
+  return !origin || origin === new URL(req.url).origin || LOCAL_RE.test(origin);
+}
+
 /** OPTIONS 사전 요청 응답 */
 export function preflight(req: Request): Response {
   const h = corsHeaders(req.headers.get("origin"));

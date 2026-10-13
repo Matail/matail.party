@@ -3,6 +3,7 @@
 //   POST /api/streams/move   { token, slot, thinkMs? }       → { token, aiSlot, turn, playerScore, aiScore, nextCard | finished }
 //   POST /api/streams/events { sessionId?, playerId?, events } → 202 { accepted }   (행동 기록, events.ts)
 //   GET  /api/streams/stats · /api/streams/live(웹소켓)                              (실시간 통계, stats.ts)
+//   POST /api/streams/rooms · /rooms/{code}/join, GET /rooms/{code}/ws(웹소켓)      (멀티 방, room.ts · roomdo.ts)
 // 요청 헤더 x-streams-client (예: web/1, unity-webgl/0.1.0) 는 streams_games.client 에 남는다 (client.ts).
 // 게임 상태(덱 포함)는 암호화 토큰(state.ts)으로 클라이언트가 들고 다니고, 클라이언트는 지금 카드 한 장만 본다.
 // 응답을 먼저 보내고 D1 기록은 waitUntil 로 뒤에서 쓴다 — 수마다 DB 왕복을 기다리지 않는다.
@@ -10,9 +11,11 @@
 // 관리자 설정 streams/collect 가 false 면 게임은 그대로 되지만 D1 기록·실시간 집계를 남기지 않는다 (판 단위: 토큰의 rec).
 
 import { LEVELS, PolicyNet, StreamsAI, type Level, type ManifestEntry } from "./ai.ts";
-import { clientOf } from "./client.ts";
+import { clientOf, originAllowed } from "./client.ts";
 import { insertEvents, parseEvents } from "./events.ts";
 import type { StatsHub } from "./statshub.ts";
+import type { StreamsRoom } from "./roomdo.ts";
+import { CODE_CHARS, CODE_LEN, cleanName, normCode } from "./room.ts";
 import { N, newDeck, score } from "./game.ts";
 import { open, seal, type GameState } from "./state.ts";
 import { setting } from "../settings.ts";
@@ -22,6 +25,8 @@ export interface Env {
   MODELS: KVNamespace;
   STREAMS_KEY: string;
   STATS: DurableObjectNamespace<StatsHub>;
+  ROOMS: DurableObjectNamespace<StreamsRoom>;
+  ROOM_LIMIT: RateLimit;
 }
 
 /** 실시간 통계는 한 곳(DO 하나)에 모은다 */
@@ -30,7 +35,7 @@ const hub = (env: Env) => env.STATS.get(env.STATS.idFromName("global"));
 const AI_MODEL = "v17-pikl";
 let aiPromise: Promise<StreamsAI> | null = null;
 
-function loadAI(env: Env): Promise<StreamsAI> {
+export function loadAI(env: Env): Promise<StreamsAI> {
   aiPromise ??= (async () => {
     // 가중치는 바뀌지 않으므로 엣지 캐시를 길게 (기본 60초면 새 isolate 마다 원본에서 다시 받음)
     const cacheTtl = 86400;
@@ -139,7 +144,55 @@ async function events(req: Request, env: Env, ctx: ExecutionContext) {
   return json({ accepted: batch.rows.length }, 202);
 }
 
+// ── 멀티 방 (docs/streams-api.md "멀티 (방)") ──
+
+const roomStub = (env: Env, code: string) => env.ROOMS.get(env.ROOMS.idFromName(code));
+
+function newCode(): string {
+  return Array.from(crypto.getRandomValues(new Uint32Array(CODE_LEN)), (v) => CODE_CHARS[v % CODE_CHARS.length]).join("");
+}
+
+async function seatRequest(req: Request) {
+  const body = (await req.json().catch(() => ({}))) as { name?: unknown; playerId?: unknown };
+  return { name: cleanName(body.name), playerId: typeof body.playerId === "string" ? body.playerId.slice(0, 64) : null };
+}
+
+async function createRoom(req: Request, env: Env) {
+  const { name, playerId } = await seatRequest(req);
+  if (!name) return json({ error: "invalid name" }, 400);
+  const ip = req.headers.get("cf-connecting-ip") ?? "local";
+  if (!(await env.ROOM_LIMIT.limit({ key: ip })).success) return json({ error: "too many rooms" }, 429);
+  // 코드가 겹치면(이미 있는 방) 다른 코드로
+  for (let i = 0; i < 5; i++) {
+    const code = newCode(), seatToken = randomId(16);
+    const seat = await roomStub(env, code).create(code, name, playerId, seatToken);
+    if (seat !== null) return json({ code, seat, seatToken }, 201);
+  }
+  throw new Error("no free room code");
+}
+
+async function joinRoom(req: Request, env: Env, code: string) {
+  const { name, playerId } = await seatRequest(req);
+  if (!name) return json({ error: "invalid name" }, 400);
+  const seatToken = randomId(16);
+  const seat = await roomStub(env, code).join(name, playerId, seatToken);
+  if (typeof seat === "string") return json({ error: seat }, seat === "room not found" ? 404 : 409);
+  return json({ code, seat, seatToken });
+}
+
+async function handleRooms(req: Request, env: Env, path: string): Promise<Response> {
+  if (path === "/api/streams/rooms") return req.method === "POST" ? createRoom(req, env) : json({ error: "method not allowed" }, 405);
+  const m = /^\/api\/streams\/rooms\/([^/]+)\/(join|ws)$/.exec(path);
+  const code = m && normCode(m[1]);
+  if (!m || !code) return json({ error: "room not found" }, 404);
+  if (m[2] === "join") return req.method === "POST" ? joinRoom(req, env, code) : json({ error: "method not allowed" }, 405);
+  if (req.headers.get("upgrade") !== "websocket") return json({ error: "expected websocket" }, 426);
+  if (!originAllowed(req)) return json({ error: "origin not allowed" }, 403);
+  return roomStub(env, code).fetch(req);
+}
+
 export async function handleStreams(req: Request, env: Env, ctx: ExecutionContext, path: string): Promise<Response> {
+  if (path === "/api/streams/rooms" || path.startsWith("/api/streams/rooms/")) return handleRooms(req, env, path);
   if (req.method === "GET" && path === "/api/streams/live") return hub(env).fetch(req);
   if (req.method === "GET" && path === "/api/streams/stats") {
     const res = json(await hub(env).snapshot());
