@@ -2,13 +2,17 @@
 // 방 하나 = DO 하나 (idFromName(방 코드)). 계약은 docs/streams-api.md 의 "멀티 (방)" 절.
 // 웹소켓은 하이버네이션 API: 연결마다 자리 번호를 attachment 에 두고, ping/pong 은 DO 를 깨우지 않는다.
 // room.ts 함수는 await 없이 방을 고치고 메시지를 돌려준다 — 그 사이에 다른 메시지가 끼어들지 않는다. 저장은 그 뒤에.
+// 판이 끝나면 D1(migration 0008)에 한 번에 쓰고 실시간 통계에 알린다 (관리자 설정 streams/collect 를 따른다).
 import { DurableObject } from "cloudflare:workers";
-import { loadAI, type Env } from "./api.ts";
-import { newDeck } from "./game.ts";
+import { hub, loadAI, type Env } from "./api.ts";
+import { newDeck, score } from "./game.ts";
+import { setting } from "../settings.ts";
 import {
   addSeat, connect, disconnect, expired, handle, newRoom, nextAlarm, parseClient, seatByToken, tick,
   type Deps, type Out, type Room,
 } from "./room.ts";
+
+const EDITOR = "unity-editor/";
 
 const HELLO_MS = 5000;   // 연결하고 hello 를 보내기까지
 const MAX_MSG = 1024;    // 메시지 크기
@@ -35,19 +39,19 @@ export class StreamsRoom extends DurableObject<Env> {
   // ── Worker 가 부르는 것 (HTTP) ──
 
   /** 방 만들기. 이미 쓰는 코드면 null (Worker 가 다른 코드로 다시) */
-  async create(code: string, name: string, playerId: string | null, token: string): Promise<number | null> {
+  async create(code: string, name: string, playerId: string | null, client: string | null, token: string): Promise<number | null> {
     if (await this.load()) return null;
     const room = (this.room = newRoom(code, Date.now()));
-    const seat = addSeat(room, name, playerId, token, Date.now());
+    const seat = addSeat(room, name, playerId, client, token, Date.now());
     await this.save();
     return typeof seat === "object" ? seat.seat : null;
   }
 
   /** 들어가기. 자리 번호 또는 오류 ("room not found" · "room full" · "game in progress") */
-  async join(name: string, playerId: string | null, token: string): Promise<number | string> {
+  async join(name: string, playerId: string | null, client: string | null, token: string): Promise<number | string> {
     const room = await this.load();
     if (!room) return "room not found";
-    const seat = addSeat(room, name, playerId, token, Date.now());
+    const seat = addSeat(room, name, playerId, client, token, Date.now());
     if (typeof seat === "string") return seat;
     await this.save();
     return seat.seat;
@@ -169,6 +173,7 @@ export class StreamsRoom extends DurableObject<Env> {
   }
 
   private send(outs: Out[]) {
+    if (this.room && outs.some((o) => o.msg?.t === "finished")) this.record(this.room);
     const conns = this.ctx.getWebSockets().map((ws) => ({ ws, seat: (ws.deserializeAttachment() as Attach | null)?.seat ?? -1 }));
     for (const o of outs) {
       for (const { ws, seat } of conns) {
@@ -179,6 +184,34 @@ export class StreamsRoom extends DurableObject<Env> {
         } catch { /* 이미 닫힘 */ }
       }
     }
+  }
+
+  /** 끝난 판을 D1 에 남긴다. 값은 지금 바로 떠 두고(다음 판이 곧 시작될 수 있다) 쓰기는 뒤에서 */
+  private record(room: Room) {
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(16).padStart(2, "0")).join("");
+    const now = new Date().toISOString();
+    const db = this.env.DB;
+    const writes = [db.prepare(`INSERT INTO streams_pvp_games (id, room, deck, seats, created_at, finished_at) VALUES (?, ?, ?, ?, ?, ?)`)
+      .bind(id, room.code, JSON.stringify(room.deck), room.seats.length, new Date(room.startedAt).toISOString(), now)];
+    const autoTurns = (seat: number) => room.moves.filter((m) => m.seat === seat && m.auto).length;
+    writes.push(db.prepare(`INSERT INTO streams_pvp_seats (game_id, seat, player_id, client, board, score, rank, auto_turns) VALUES `
+      + room.seats.map(() => "(?, ?, ?, ?, ?, ?, ?, ?)").join(", "))
+      .bind(...room.seats.flatMap((s) => [id, s.seat, s.playerId, s.client, JSON.stringify(s.board), score(s.board), s.rank, autoTurns(s.seat)])));
+    // 턴마다 한 문장 (자리 8개 × 7 = 56 칸 — D1 의 바인드 100개 한도 안)
+    for (let turn = 0; turn < 20; turn++) {
+      const moves = room.moves.filter((m) => m.turn === turn);
+      if (moves.length === 0) continue;
+      writes.push(db.prepare(`INSERT INTO streams_pvp_turns (game_id, turn, seat, card, slot, think_ms, auto) VALUES `
+        + moves.map(() => "(?, ?, ?, ?, ?, ?, ?)").join(", "))
+        .bind(...moves.flatMap((m) => [id, m.turn, m.seat, m.card, m.slot, m.thinkMs, m.auto ? 1 : 0])));
+    }
+    const counted = room.seats.some((s) => !(s.client ?? "").startsWith(EDITOR));
+    this.ctx.waitUntil((async () => {
+      if (!(await setting(db, "streams", "collect", true))) return;
+      // 허브를 먼저: 허브가 처음 깨어나면 D1 에서 다시 세는데, 이 판을 쓴 뒤라면 두 번 센다
+      if (counted) await hub(this.env).pvpFinished(id);
+      await db.batch(writes);
+    })().catch((e) => console.error("streams room: record failed", e)));
   }
 
   private flood(ws: WebSocket): boolean {

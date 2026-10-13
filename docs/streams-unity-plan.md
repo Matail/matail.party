@@ -307,6 +307,8 @@ GET  /api/streams/rooms/{code}/ws    웹소켓 (첫 메시지 hello{seatToken}, 
   판 흐름 · 점수 분포 · 난이도별 사람 vs AI · 승무패 · 첫 카드 히트맵. 웹소켓(하이버네이션), 안 되면 5초 폴링.
   관리자 통계 Worker `streams-admin` (`admin/`): 최근 판 · 클라이언트 · 행동 기록 · 생각 시간 · 품질 규칙으로 빠진 판.
 - 5단계 시작 (2026-10-13): 멀티 프로토콜 초안 (`docs/streams-api.md` 멀티 절).
+- 5단계 멀티 기록 (2026-10-13): migration 0008 (`streams_pvp_games` · `streams_pvp_seats` · `streams_pvp_turns`), 방이 판 끝에 D1 에 씀,
+  공개 통계에 친구와 대전 판 수(`pvp`, 타일 하나).
 - 5단계 방 서버 (2026-10-13): DO `StreamsRoom` (`worker/streams/roomdo.ts`), `/api/streams/rooms` 라우트, 방 만들기 속도 제한 `ROOM_LIMIT`, 웹소켓 Origin 확인.
   `wrangler dev` 에서 `room.e2e.mjs` 로 3명 한 판 (재접속 · 20초 시간 초과 · 다른 탭 · 속도 제한).
 - 5단계 방 규칙 (2026-10-13): `worker/streams/room.ts` — 자리·시작·턴·20초 시간 초과·AI 이어 두기·방 수명. 시각·덱·AI 는 밖에서 넣는 순수 함수, `room.test.ts`.

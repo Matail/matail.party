@@ -24,6 +24,7 @@ import StatsNav from '../../components/StatsNav.astro';
 			<div class="tile"><span class="t-label">오늘 끝난 판</span><span class="t-value" data-v="todayFinished">–</span></div>
 			<div class="tile"><span class="t-label">오늘 최고 점수</span><span class="t-value" data-v="todayBest">–</span></div>
 			<div class="tile"><span class="t-label">지금까지 끝난 판</span><span class="t-value" data-v="finished">–</span></div>
+			<div class="tile"><span class="t-label">친구와 대전 판</span><span class="t-value" data-v="pvp">–</span></div>
 		</section>
 
 		<section class="grid">
@@ -100,7 +101,7 @@ import StatsNav from '../../components/StatsNav.astro';
 	.hero { text-align: center; padding: clamp(2rem, 6vw, 4rem) 0 2rem; }
 	.hero h1 { margin: 0; font-size: clamp(2rem, 5vw, 3.2rem); }
 
-	.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 0 auto 16px; max-width: 960px; }
+	.tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin: 0 auto 16px; max-width: 960px; }
 	.tile {
 		display: grid; gap: 4px; padding: 14px 16px; border-radius: 14px;
 		background: var(--card); border: 1px solid var(--line);
@@ -146,6 +147,7 @@ import StatsNav from '../../components/StatsNav.astro';
 
 	@media (max-width: 760px) {
 		.tiles { grid-template-columns: 1fr 1fr; }
+		.tiles .tile:last-child:nth-child(odd) { grid-column: span 2; }
 		.grid { grid-template-columns: 1fr; }
 	}
 </style>

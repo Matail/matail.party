@@ -1,7 +1,7 @@
 // 실시간 통계 Durable Object — 집계(stats.ts)를 저장하고 웹소켓으로 방송한다.
 // 보는 사람이 가만히 있으면 하이버네이션 API 로 잠들어 비용이 들지 않는다.
 import { DurableObject } from "cloudflare:workers";
-import { ALL_CARDS, applyFinished, applyFirst, applyStarted, countFromD1, counted, PUBLIC_CARDS, publicView, type Finished, type PublicCard, type PublicStats, type Stats } from "./stats.ts";
+import { ALL_CARDS, applyFinished, applyFirst, applyPvp, applyStarted, countFromD1, counted, PUBLIC_CARDS, publicView, type Finished, type PublicCard, type PublicStats, type Stats } from "./stats.ts";
 
 export class StatsHub extends DurableObject<{ DB: D1Database }> {
   private stats: Stats | null = null;
@@ -63,6 +63,12 @@ export class StatsHub extends DurableObject<{ DB: D1Database }> {
   async finished(g: Finished) {
     if (!counted(g.client)) return;
     applyFinished(await this.load(), g, Date.now());
+    await this.changed();
+  }
+
+  /** 멀티 방 판이 끝남 (Room DO 가 D1 에 쓴 뒤) */
+  async pvpFinished(gameId: string) {
+    applyPvp(await this.load(), gameId);
     await this.changed();
   }
 

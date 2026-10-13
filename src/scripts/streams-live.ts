@@ -8,6 +8,7 @@ interface Stats {
   todayFinished: number; todayBest: number;
   levels: LevelAgg[]; bins: number[]; heat: number[];
   playing: number; updatedAt: number;
+  pvp?: number; // 끝난 친구와 대전 판 (옛 서버엔 없다)
   cards?: string[]; // 관리자가 공개로 둔 카드. 꺼진 카드의 값은 오지 않는다
 }
 
@@ -170,6 +171,7 @@ function render(root: HTMLElement, s: Stats) {
     set('todayFinished', fmt(s.todayFinished));
     set('todayBest', s.todayFinished ? fmt(s.todayBest) : '–');
     set('finished', fmt(s.finished));
+    set('pvp', fmt(s.pvp ?? 0));
   }
   if (on('funnel')) {
     set('started', fmt(s.started));

@@ -1,7 +1,7 @@
 // stats.ts 집계 확인 (DO 없이 순수 함수만).
 //   node worker/streams/stats.test.ts
 import assert from "node:assert/strict";
-import { applyFinished, applyFirst, applyStarted, binOf, counted, dayOf, dayStartIso, emptyStats, publicView, SLOTS } from "./stats.ts";
+import { applyFinished, applyFirst, applyPvp, applyStarted, binOf, counted, dayOf, dayStartIso, emptyStats, publicView, SLOTS } from "./stats.ts";
 
 // 한국 날짜: UTC 15:00 = 다음날 00:00 KST
 assert.equal(dayOf(Date.parse("2026-09-30T14:59:59Z")), "2026-09-30");
@@ -35,6 +35,15 @@ assert.equal(s.best, 42);
 
 // 공개 모양: 판 id 가 새지 않고 진행 중은 개수만, 판 하나하나(최근 판)·클라이언트 비율은 없음 (관리자 전용)
 applyStarted(s, "g3", t0);
+applyPvp(s, "r1");
+applyPvp(s, "r1");                                // 같은 판 → 한 번만
+applyPvp(s, "r2");
+assert.equal(s.pvp, 2);
+const old = { ...emptyStats(t0) } as ReturnType<typeof emptyStats>;
+delete old.pvp;                                   // 옛 저장본에는 pvp 가 없다
+assert.equal(publicView(old, t0).pvp, 0);
+applyPvp(old, "r3");
+assert.equal(old.pvp, 1);
 const view = publicView(s, t0 + 70_000);
 assert.equal(view.playing, 1);
 assert.equal("active" in view || "marks" in view || "recent" in view || "clients" in view, false);
