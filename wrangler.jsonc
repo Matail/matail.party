@@ -36,12 +36,19 @@
 	"durable_objects": {
 		"bindings": [
 			{ "name": "STATS", "class_name": "StatsHub" },
-			{ "name": "AIM_STATS", "class_name": "AimStatsHub" }
+			{ "name": "AIM_STATS", "class_name": "AimStatsHub" },
+			// STREAMS 멀티 방 — 방 코드마다 하나 (worker/streams/roomdo.ts, 규칙은 room.ts)
+			{ "name": "ROOMS", "class_name": "StreamsRoom" }
 		]
 	},
 	"migrations": [
 		{ "tag": "v1", "new_sqlite_classes": ["StatsHub"] },
-		{ "tag": "v2", "new_sqlite_classes": ["AimStatsHub"] }
+		{ "tag": "v2", "new_sqlite_classes": ["AimStatsHub"] },
+		{ "tag": "v3", "new_sqlite_classes": ["StreamsRoom"] }
+	],
+	// STREAMS 멀티 방 만들기: IP 당 1분에 5개. namespace_id 는 계정 안에서 겹치지 않게
+	"ratelimits": [
+		{ "name": "ROOM_LIMIT", "namespace_id": "5101", "simple": { "limit": 5, "period": 60 } }
 	],
 	// 요청이 먼 데이터센터(예: DFW)로 가도 D1(ICN) 가까이에서 Worker 를 돌리도록
 	"placement": { "mode": "smart" },

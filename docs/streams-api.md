@@ -186,11 +186,13 @@ x-streams-client: <종류>/<버전>
 | `bins` | 사람 점수 10점 단위 분포, 마지막은 100점 이상 |
 | `heat` | 첫 수: 첫 카드 숫자별로 놓은 칸 |
 
-## 멀티 (방) — 초안, 아직 구현 전
+## 멀티 (방) — 서버 구현됨, 클라이언트는 아직
 
 2~8명이 **같은 카드를 동시에** 받아 각자 놓는다. 계획은 `docs/streams-unity-plan.md` 5단계.
 
-- 방 하나 = Durable Object `Room` 하나. 규칙은 순수 함수 `worker/streams/room.ts` (테스트 `node worker/streams/room.test.ts`), DO 는 저장·웹소켓·타이머만 (DO 는 예정).
+- 방 하나 = Durable Object `StreamsRoom` 하나 (`worker/streams/roomdo.ts`, 저장·웹소켓·타이머만). 규칙은 순수 함수 `worker/streams/room.ts`.
+  테스트: `node worker/streams/room.test.ts` (규칙), `wrangler dev` 를 띄우고 `node worker/streams/room.e2e.mjs` (서버 전체).
+- 로컬 개발에서 KV 에 모델이 없으면 시간 초과 · 대신 두기는 무작위 빈칸으로 둔다.
 - 방 코드로만 들어간다. 빠른 매치는 나중.
 - **상태는 DO 안에만** 있다. AI 대전의 암호화 토큰은 쓰지 않는다. 덱은 방 밖으로 나가지 않고, 클라이언트는 이번 카드만 본다.
 - 방 만들기 · 들어가기는 HTTP, 판은 웹소켓.

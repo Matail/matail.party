@@ -7,6 +7,8 @@ import { preflight, withCors } from "./streams/client.ts";
 // 실시간 통계 Durable Object (wrangler.jsonc 의 durable_objects)
 export { StatsHub } from "./streams/statshub.ts";
 export { AimStatsHub } from "./aimbooster/statshub.ts";
+// STREAMS 멀티 방 (방 하나 = DO 하나)
+export { StreamsRoom } from "./streams/roomdo.ts";
 
 // 대표 주소 (astro.config.mjs 의 SITE 와 같다)
 const SITE = "https://matail.party";
