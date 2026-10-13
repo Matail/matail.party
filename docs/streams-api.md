@@ -186,6 +186,145 @@ x-streams-client: <종류>/<버전>
 | `bins` | 사람 점수 10점 단위 분포, 마지막은 100점 이상 |
 | `heat` | 첫 수: 첫 카드 숫자별로 놓은 칸 |
 
+## 멀티 (방) — 초안, 아직 구현 전
+
+2~8명이 **같은 카드를 동시에** 받아 각자 놓는다. 계획은 `docs/streams-unity-plan.md` 5단계.
+
+- 방 하나 = Durable Object `Room` 하나. 규칙은 순수 함수(`worker/streams/room.ts`), DO 는 저장·웹소켓·타이머만 (예정).
+- 방 코드로만 들어간다. 빠른 매치는 나중.
+- **상태는 DO 안에만** 있다. AI 대전의 암호화 토큰은 쓰지 않는다. 덱은 방 밖으로 나가지 않고, 클라이언트는 이번 카드만 본다.
+- 방 만들기 · 들어가기는 HTTP, 판은 웹소켓.
+
+```text
+방장  POST /api/streams/rooms              → code, seatToken
+친구  POST /api/streams/rooms/{code}/join  → seatToken
+모두  GET  /api/streams/rooms/{code}/ws    → hello{seatToken} → state
+방장  start                                → 모두에게 card(turn 0)
+각자  place                                → 모두에게 placed (누가 놨는지만)
+모두 놓음 또는 20초                          → reveal (모두의 칸·점수) → card(다음) … 20번째 reveal 뒤 finished
+방장  start                                → 같은 방에서 한 판 더
+```
+
+### `POST /api/streams/rooms` — 방 만들기
+
+요청 `{ "name": "철수", "playerId": "0b6e…(선택)" }` → 응답 201
+
+```json
+{ "code": "K7QM2X", "seat": 0, "seatToken": "<불투명 문자열>" }
+```
+
+| 필드 | 설명 |
+|---|---|
+| `name` | 닉네임. 앞뒤 공백·제어 문자를 지우고 1~12자 |
+| `playerId` | AI 대전과 같은 익명 id. 기록용, 다른 사람에게 보내지 않는다 |
+| `code` | 방 코드 6자. 글자는 `ABCDEFGHJKMNPQRSTUVWXYZ23456789` (헷갈리는 0·O·1·I·L 뺌). 대소문자 구분 없이 받는다 |
+| `seat` | 내 자리 번호 0~7. 방 안에서 바뀌지 않는다 |
+| `seatToken` | 이 자리로 웹소켓에 들어갈 비밀값. Unity 는 방 코드와 함께 `PlayerPrefs` 에 둔다 (재접속용) |
+
+오류: `400 invalid name`, `429 too many rooms` (IP 당 1분에 5개)
+
+### `POST /api/streams/rooms/{code}/join` — 들어가기
+
+요청은 방 만들기와 같다 → 응답 200 `{ "code", "seat", "seatToken" }`
+
+| 상태 | `error` | 뜻 |
+|---|---|---|
+| 400 | `invalid name` | |
+| 404 | `room not found` | 코드가 없거나 방이 지워짐 |
+| 409 | `room full` | 8명 |
+| 409 | `game in progress` | 판 도중에는 못 들어온다. 대기실(`lobby`)과 판이 끝난 뒤(`finished`)에만 |
+
+### 웹소켓 `GET /api/streams/rooms/{code}/ws`
+
+- 연결하면 **첫 메시지로 `hello`** 를 보낸다. 토큰은 URL 에 넣지 않는다 (로그에 남음). 5초 안에 안 오면 닫는다.
+- 메시지는 JSON 텍스트 하나에 하나, 종류는 필드 `t`. 1KB 이하, 연결당 초당 10개 이하 — 넘으면 닫는다.
+- **Unity `JsonUtility` 로 읽을 수 있게** 만든다: 객체를 사전(키가 바뀌는 맵)으로 쓰지 않고, 중첩 배열이 없고,
+  필드는 빠뜨리지 않고 항상 보낸다 (없음 = `-1`). 클라이언트는 `t` 만 먼저 읽고 종류별 클래스로 다시 읽는다.
+- 살아 있음 확인: 클라이언트가 25초마다 텍스트 `ping` 을 보내면 서버가 `pong` (DO 를 깨우지 않는 자동 응답).
+- `Origin` 이 있으면 사이트 도메인과 `http://localhost`·`127.0.0.1` 만 받는다. 에디터·네이티브 빌드는 `Origin` 이 없어 그대로 받는다.
+
+| 닫는 코드 | 뜻 · 클라이언트 처리 |
+|---|---|
+| 4000 | 같은 자리로 새 연결이 들어옴 (탭 두 개). 다시 붙지 않는다 |
+| 4001 | `hello` 가 없거나 토큰이 틀림. 저장한 토큰을 지운다 |
+| 4004 | 방이 지워짐. 저장한 토큰을 지운다 |
+| 1008 | 메시지 크기·빈도 초과 |
+| 그 밖 | 네트워크 끊김. 1·2·4·8초… (최대 15초) 간격으로 다시 붙어 `hello` |
+
+### 클라이언트 → 서버
+
+| `t` | 필드 | 뜻 |
+|---|---|---|
+| `hello` | `seatToken` | 연결 직후 한 번. 답으로 `state`. AI 가 대신 두던 자리면 다음 카드부터 돌려받는다 |
+| `start` | — | 방장만, `lobby` 또는 `finished` 에서. 연결된 사람이 2명 이상이어야 한다 |
+| `place` | `turn`, `slot`, `thinkMs` | 이번 카드를 내 보드 `slot`(0~19, 빈칸)에 놓는다. `thinkMs` = 카드를 **화면에 보여 준 순간부터** 걸린 시간 |
+| `resume` | — | AI 가 대신 두는 중일 때 "돌아가기". 다음 카드부터 직접 둔다 |
+| `leave` | — | 방을 나간다. 대기실이면 자리가 비고, 판 도중이면 그 판 끝까지 AI 가 대신 둔다 (`hello` 로 돌아올 수 있음) |
+
+### 서버 → 클라이언트
+
+| `t` | 언제 | 필드 |
+|---|---|---|
+| `state` | `hello` 직후, 그리고 자리 목록이 바뀔 때마다 (들어옴·나감·연결·끊김·AI 대신 둠·방장 바뀜) | 아래 |
+| `card` | 판 시작과 매 턴 | `turn` (0~19), `card` (1~30), `timeLeftMs` |
+| `placed` | 누가 이번 카드를 놓았을 때 — **칸은 알려 주지 않는다**. 내 `place` 의 확인이기도 하다 | `turn`, `seat` |
+| `reveal` | 모두 놓았거나 시간이 다 됐을 때 | `turn`, `card`, `seats: [{ seat, slot, auto, score }]` |
+| `finished` | 20번째 `reveal` 바로 뒤 | `seats: [{ seat, score, rank }]` — 같은 점수는 같은 등수 (1, 1, 3) |
+| `error` | 요청을 못 받았을 때 | `code`, `message` |
+
+`state`:
+
+```json
+{
+  "t": "state", "code": "K7QM2X", "phase": "playing", "you": 2, "host": 0,
+  "turn": 7, "card": 18, "timeLeftMs": 12400, "mySlot": -1,
+  "seats": [
+    { "seat": 0, "name": "철수", "online": true, "auto": false, "placed": true, "score": 9, "rank": 0, "board": [3, 0, 7, "… 20칸, 0 = 빈칸"] }
+  ]
+}
+```
+
+| 필드 | 설명 |
+|---|---|
+| `phase` | `lobby` (대기실) · `playing` · `finished` (판이 끝나고 다음 판을 기다림) |
+| `turn` · `card` · `timeLeftMs` | `playing` 일 때 이번 카드. 아니면 `-1` · `0` · `0` |
+| `mySlot` | 이번 카드를 내가 이미 놓았으면 그 칸, 아니면 `-1` (재접속 직후 화면 복구용) |
+| `seats[].board` | **공개된** 카드만. 이번 턴에 놓은 칸은 `reveal` 전까지 0 (내 것은 `mySlot`) |
+| `seats[].auto` | AI 가 이 자리를 대신 두는 중 |
+| `seats[].placed` | 이번 카드를 놓았음 |
+| `seats[].rank` | `finished` 일 때 등수, 아니면 0 |
+
+`error.code`: `bad_message` · `not_host` · `need_players` (연결된 사람 2명 미만) · `bad_phase` · `wrong_turn` · `already_placed` · `invalid_slot`.
+`place` 가 거절되면 클라이언트는 놓은 카드를 되돌린다.
+
+### 턴 규칙
+
+- 판 시작: 덱은 AI 대전과 같은 규칙(`newDeck`). **시작할 때 연결돼 있는 자리만** 참가한다.
+- 카드마다 **20초**. `timeLeftMs` 는 서버가 보낸 순간 기준이다 — 클라이언트는 받은 순간부터 센다 (시계 차이를 맞추지 않는다).
+- 모두 놓으면 기다리지 않고 바로 `reveal` 과 다음 `card` 를 보낸다. 클라이언트는 `reveal` 연출 중에 다음 카드를 받을 수 있다.
+- 20초가 지나면 안 놓은 자리는 서버 AI(입문 정책)가 둔다 → `reveal` 에서 `auto: true`. **이 수는 학습 데이터에서 뺀다.**
+- **두 턴 연속 시간 초과**면 그 자리는 AI 가 대신 둔다(`auto`) — 다음 카드부터 카드가 나오자마자 둔다. `hello` 나 `resume` 으로 돌려받는다.
+  모두 나가면 AI 끼리 금방 끝까지 둔다.
+- `place` 재전송: 같은 턴에 이미 놓았으면 같은 칸은 오류 없이 `placed` 를 다시 보내고, 다른 칸이면 `already_placed`.
+
+### 방 수명
+
+- 방장이 나가면(대기실에서 `leave`, 또는 연결이 끊긴 채 60초) 남은 사람 중 가장 낮은 `seat` 가 방장이 된다.
+- 대기실·`finished` 에서 연결이 끊긴 자리는 60초 안에 안 돌아오면 비운다.
+- 연결이 하나도 없이 10분이 지나면 방을 지운다 (그 뒤 코드는 `404`, 웹소켓은 4004).
+- 판이 끝나면 D1 에 남긴다 (`mode = 'pvp'`, 좌석별 보드·턴, 테이블은 migration 0008 예정). 아래 **수집 끄기** 설정을 따른다.
+
+### 예시 (자리 0 에서 본 한 턴)
+
+```text
+← {"t":"card","turn":7,"card":18,"timeLeftMs":20000}
+→ {"t":"place","turn":7,"slot":9,"thinkMs":3120}
+← {"t":"placed","turn":7,"seat":0}
+← {"t":"placed","turn":7,"seat":1}
+← {"t":"reveal","turn":7,"card":18,"seats":[{"seat":0,"slot":9,"auto":false,"score":12},{"seat":1,"slot":15,"auto":false,"score":9}]}
+← {"t":"card","turn":8,"card":4,"timeLeftMs":20000}
+```
+
 ## 데이터 수집 끄기
 
 관리자 설정 `streams/collect` 가 `false` 면 (migration 0006 `site_settings`, 최대 30초 뒤 적용) 게임은 그대로 되지만
@@ -209,3 +348,4 @@ x-streams-client: <종류>/<버전>
 | 2026-09-30 | `POST /api/streams/events`, `streams_events` 테이블과 `streams_games.mode` (migration 0004) |
 | 2026-09-30 | `GET /api/streams/stats` · `/api/streams/live` (Durable Object `StatsHub`) |
 | 2026-09-30 | 관리자 설정 (migration 0006): 수집 끄기, 공개 카드 선택 — 통계 응답에 `cards`, 꺼진 카드의 필드는 빠짐. `best` · `todayStarted` 는 쓰는 카드가 없어 빠짐 |
+| 2026-10-13 | 멀티(방) 프로토콜 초안 — 아직 구현 전 |
