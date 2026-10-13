@@ -202,47 +202,66 @@ npx wrangler d1 execute streams-records --remote --json --command "SELECT * FROM
 
 ## 5단계 — 멀티플레이 (4~6주)
 
-### 게임 방식
+프로토콜: `docs/streams-api.md` 의 **멀티 (방)** 절.
+
+### 게임 방식 (2026-10-13 정함)
 
 STREAMS 는 원래 여러 명이 **같은 카드를 동시에 받는** 게임이라 멀티에 잘 맞는다.
 
-- 방 하나 = DO `Room` 인스턴스 하나. 2~8명(설정 가능), 빈자리는 AI(난이도 선택)로 채울 수 있다.
-- 턴 흐름: 카드 공개 → 모두 놓음(또는 제한 시간 끝) → 다음 카드. 시간 초과면 서버가 자동으로 둠 (AI 레벨1 정책 또는 무작위 빈칸).
+- **처음부터 2~8명.** 방 하나 = DO `Room` 인스턴스 하나.
+- **방 코드로만** 들어간다 (친구 초대). 빠른 매치(`Lobby` DO)는 나중.
+- 턴 흐름: 카드 공개 → 모두 놓음(또는 **20초** 끝) → 공개 → 다음 카드. 모두 놓으면 기다리지 않는다.
+- 시간 초과면 서버 AI(입문 정책)가 그 턴을 대신 둔다. **두 턴 연속** 시간 초과이거나 나가면 **AI 가 자리를 이어 둔다** — 돌아오면 돌려받는다.
 - 다른 사람 보드는 **놓은 뒤에** 공개 (동시에 두는 공정성). 덱은 방 안에만 있다.
+- 시작은 방장이, 연결된 사람 2명 이상일 때. 빈자리를 AI 로 채우는 기능은 나중 (AI 는 이미 방 안에 있으니 붙이기 쉽다).
 
 ### 서버 (Worker + DO)
 
 ```text
-POST /api/streams/rooms          방 만들기 (비공개 코드) 또는
-POST /api/streams/match          빠른 매치 → Lobby DO 가 방 배정
-GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
-```
-
-메시지 (JSON, 클라이언트 → 서버 / 서버 → 클라이언트):
-
-```text
-→ place {turn, slot, thinkMs}          ← card {turn, card, deadline}
-→ ready / leave                        ← placed {seat, turn}         (누가 놨는지만)
-                                       ← reveal {turn, slots{seat:slot}, scores}
-                                       ← state {…}                   (재접속 시 전체 상태)
-                                       ← finished {ranking}
+POST /api/streams/rooms              방 만들기 → 방 코드
+POST /api/streams/rooms/{code}/join  들어가기
+GET  /api/streams/rooms/{code}/ws    웹소켓 (첫 메시지 hello{seatToken}, 재접속도 같음)
 ```
 
 - **상태는 DO 안에만** 있다. 싱글의 암호화 토큰 방식(되돌려 두기 문제 → attempts 컬럼)이 멀티에선 필요 없다.
-- DO storage 에 턴마다 저장 → DO 가 재시작돼도 판이 이어진다. `alarm()` 으로 턴 제한 시간 처리.
+- 규칙은 순수 함수 `room.ts` (상태 + 메시지 → 새 상태 + 보낼 메시지), DO 는 껍데기 — `stats.ts`/`statshub.ts` 와 같은 나눔. node 로 테스트한다.
+- 하이버네이션 웹소켓, 자리 정보는 `serializeAttachment`. 턴마다 DO storage 에 저장 → DO 가 재시작돼도 판이 이어진다.
+  `alarm()` 하나로 턴 제한 시간 · 끊긴 자리 정리 · 빈 방 지우기.
+- AI 가 방 안에서 둔다 — `api.ts` 의 `loadAI` 를 같이 쓴다 (DO 에 `MODELS` 바인딩).
 - 판이 끝나면 D1 에 기록(`mode = 'pvp'`, 좌석별 보드) + `StatsHub` 에 결과 전달 → 3단계 대시보드에 멀티 판도 실시간 반영.
-- 멀티 기록은 사람 vs 사람이 **같은 카드 순서**를 받은 데이터라 AI 학습에 특히 좋은 비교 데이터가 된다.
+  AI 대전 테이블에 끼우지 않고 따로 둔다: `streams_pvp_rooms` · `streams_pvp_seats` · `streams_pvp_turns(…, think_ms, auto)` (migration 0008).
+- 멀티 기록은 사람끼리 **같은 카드 순서**를 받은 데이터라 AI 학습에 특히 좋은 비교 데이터가 된다. `auto` 수는 뺀다.
+- 주의: DO 는 한 스레드지만 `await` 사이에 다른 메시지가 끼어든다 → `place` 처리는 await 없이 끝내고, 저장은 그 뒤에.
 
 ### Unity
 
-- `RoomSession : IGameSession` 추가. WebGL 에서도 되는 웹소켓 라이브러리 필요 (예: NativeWebSocket) — `System.Net.WebSockets` 는 WebGL 에서 안 됨.
-- 로비 UI, 방 코드 입력, 상대 보드 여러 개 표시, 연결 끊김/재접속 처리.
+- `IGameSession` 을 인원 수와 상관없게: 점수는 자리별 점수판, 결과는 등수. `AiSession` 도 같은 모양으로 (자리 "나"·"AI").
+- `RoomSession : IGameSession` 추가. `PlaceAsync` 는 보내기만 하고, 다른 사람 수는 `reveal` 로 나중에 온다.
+- 웹소켓: `System.Net.WebSockets` 는 WebGL 에서 안 됨 → 작은 jslib(WebGL) + `ClientWebSocket`(에디터) 를 직접 쓴다 (패키지 의존 없이).
+- 메시지는 `JsonUtility` 로 읽히는 모양 (사전·중첩 배열 없음) — 프로토콜에 못 박았다.
+- 화면: 닉네임, 방 만들기 / 코드 입력, 대기실, 내 보드는 크게 + 상대 1~7명은 작은 1×20 줄, 20초 표시, "AI 가 대신 두는 중 — 돌아가기".
+- 재접속: 방 코드 + `seatToken` 을 `PlayerPrefs` 에 두고 끊기면 다시 붙어 `hello` → `state` 로 화면 복구.
+
+### 순서 (PR 단위)
+
+| # | 리포 | 내용 | 확인 |
+|---|---|---|---|
+| 1 | my-site | 프로토콜 문서 (`streams-api.md` 멀티 절) | 검토 |
+| 2 | my-site | `room.ts` 순수 로직 + 테스트 | node 테스트: 8명 한 판, 시간 초과, 이탈·복귀, 중복 `place` |
+| 3 | my-site | `Room` DO + 라우트 + 방 만들기 속도 제한 | `wrangler dev` 에서 node 웹소켓 스크립트 여러 개로 한 판 |
+| 4 | streams-unity | `IGameSession` 일반화 (AI 대전만 고침) | AI 대전 5단계가 그대로, EditMode 테스트 통과 |
+| 5 | streams-unity | 웹소켓 층 + `RoomSession` | 에디터에서 3 의 서버로 한 판 |
+| 6 | streams-unity | 멀티 화면 + 재접속 | WebGL 탭 여러 개 + 에디터로 한 판, 중간에 탭 닫았다 열기 |
+| 7 | my-site | 기록 (migration 0008) + `StatsHub` 전달 | D1 에 좌석별 보드·턴, 공개 통계에 반영 |
+| 8 | my-site | 빌드를 `/games/streams-unity/` 에 올림 | 실제 사이트에서 여러 명이 한 판 |
+
+1~3(서버)과 4(Unity 리팩터링)는 서로 기다리지 않는다.
 
 ### 신원과 랭킹 (멀티 후반)
 
 - 처음엔 익명 `player_id` + 닉네임. 부정행위 방지와 랭킹이 필요해지면 로그인(예: 이메일 링크, OAuth) 추가.
 - 랭킹은 Glicko-2 같은 레이팅. 레이팅 계산도 판이 끝날 때 DO → D1.
-- 남용 방지: 방 생성·매치 요청에 속도 제한(Workers Rate Limiting), 메시지 크기·빈도 제한.
+- 남용 방지: 방 만들기에 속도 제한(IP 당 1분 5개), 메시지 크기(1KB)·빈도(초당 10개) 제한.
 
 ---
 
@@ -255,7 +274,7 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 | 2 | 데이터 수집 강화 (마이그레이션, 이벤트) | 2주 | 0 (1과 병행) |
 | 3 | 실시간 통계 (StatsHub DO + 웹 페이지) | 2주 | 2 |
 | 4 | 모델 버전 관리·학습 루프·A/B | 계속 | 2 |
-| 5 | 멀티플레이 (Room/Lobby DO, Unity 웹소켓) | 4~6주 | 1, 3 |
+| 5 | 멀티플레이 (Room DO, Unity 웹소켓. Lobby 는 나중) | 4~6주 | 1, 3 |
 
 ## 위험과 대응
 
@@ -272,6 +291,7 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 - 2026-09-29 — **WebGL 먼저**, Unity 프로젝트는 **별도 리포** (`streams-unity`). 0단계 시작.
 - 2026-09-30 — 통계를 **공개**(합계·분포, `/stats/streams/`)와 **관리자 전용**(판 하나하나·클라이언트·행동 기록·생각 시간·품질)으로 나눈다.
   관리자 쪽은 별도 Worker `streams-admin` 을 Cloudflare Access 로 막는다 (`docs/streams-admin.md`).
+- 2026-10-13 — 멀티: **처음부터 2~8명**, **방 코드만**(빠른 매치는 나중), 턴 제한 **20초**, 나간 자리는 **AI 가 이어 둠**.
 
 ## 진행
 
@@ -286,9 +306,10 @@ GET  /api/streams/rooms/{id}/ws  웹소켓 입장 (seatToken 으로 재접속)
 - 3단계 (2026-09-30): Durable Object `StatsHub` (`worker/streams/statshub.ts`, 계산은 `stats.ts`) + 공개 페이지 `/stats/streams/`.
   판 흐름 · 점수 분포 · 난이도별 사람 vs AI · 승무패 · 첫 카드 히트맵. 웹소켓(하이버네이션), 안 되면 5초 폴링.
   관리자 통계 Worker `streams-admin` (`admin/`): 최근 판 · 클라이언트 · 행동 기록 · 생각 시간 · 품질 규칙으로 빠진 판.
+- 5단계 시작 (2026-10-13): 멀티 프로토콜 초안 (`docs/streams-api.md` 멀티 절).
 
 ## 정해야 할 것
 
 - 모바일 앱 출시 여부
-- 멀티 최대 인원, 빈자리 AI 허용 여부, 턴 제한 시간
+- 멀티: 방장이 빈자리를 AI 로 채우는 기능, 빠른 매치를 열 시점
 - 로그인을 도입할 시점
