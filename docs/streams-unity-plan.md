@@ -307,6 +307,7 @@ GET  /api/streams/rooms/{code}/ws    웹소켓 (첫 메시지 hello{seatToken}, 
   판 흐름 · 점수 분포 · 난이도별 사람 vs AI · 승무패 · 첫 카드 히트맵. 웹소켓(하이버네이션), 안 되면 5초 폴링.
   관리자 통계 Worker `streams-admin` (`admin/`): 최근 판 · 클라이언트 · 행동 기록 · 생각 시간 · 품질 규칙으로 빠진 판.
 - 5단계 시작 (2026-10-13): 멀티 프로토콜 초안 (`docs/streams-api.md` 멀티 절).
+- 5단계 방 규칙 (2026-10-13): `worker/streams/room.ts` — 자리·시작·턴·20초 시간 초과·AI 이어 두기·방 수명. 시각·덱·AI 는 밖에서 넣는 순수 함수, `room.test.ts`.
 
 ## 정해야 할 것
 
