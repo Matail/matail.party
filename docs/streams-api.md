@@ -190,7 +190,7 @@ x-streams-client: <종류>/<버전>
 
 2~8명이 **같은 카드를 동시에** 받아 각자 놓는다. 계획은 `docs/streams-unity-plan.md` 5단계.
 
-- 방 하나 = Durable Object `Room` 하나. 규칙은 순수 함수(`worker/streams/room.ts`), DO 는 저장·웹소켓·타이머만 (예정).
+- 방 하나 = Durable Object `Room` 하나. 규칙은 순수 함수 `worker/streams/room.ts` (테스트 `node worker/streams/room.test.ts`), DO 는 저장·웹소켓·타이머만 (DO 는 예정).
 - 방 코드로만 들어간다. 빠른 매치는 나중.
 - **상태는 DO 안에만** 있다. AI 대전의 암호화 토큰은 쓰지 않는다. 덱은 방 밖으로 나가지 않고, 클라이언트는 이번 카드만 본다.
 - 방 만들기 · 들어가기는 HTTP, 판은 웹소켓.
