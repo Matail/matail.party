@@ -1,0 +1,7 @@
+# Unity WebGL 의 .data 는 확장자를 Cloudflare 가 몰라 Content-Type 이 비어 나간다.
+# Content-Type 이 없거나 application/octet-stream 이면 Cloudflare 가 압축하지 않아 7~9 MB 가 그대로 내려간다
+# (.wasm 은 application/wasm 이라 br 로 줄어든다). 압축 대상 목록(application/x-protobuf 포함)에 드는 타입을 줘서
+# 압축이 걸리게 한다. Unity 로더는 .data 를 받을 때 Content-Type 을 보지 않는다 (arrayBuffer 로 읽는다).
+# 해시 이름이라 확장자로만 건다. 이 규칙 하나가 games/ 아래 모든 Unity 빌드(feedme, feedme-spike3d, streams-unity, aimbooster)에 적용된다.
+/games/*.data
+  Content-Type: application/x-protobuf
