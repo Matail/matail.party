@@ -11,7 +11,7 @@
 | 부분 | 위치 | 성질 |
 |---|---|---|
 | 규칙 | `worker/streams/game.ts` | 20칸, 40장 풀에서 20장, 비내림차순 구간 길이로 점수 (`SCORE_TABLE`) |
-| AI | `worker/streams/ai.ts` | 사람 모방(human_bc) + SGAZ 정책망을 β 로 섞음. 난이도 5단계. 가중치는 KV `MODELS` (리포에 없음) |
+| AI | `worker/streams/ai.ts` | 사람 모방(human_bc) + 증류 2회 정책망(sgaz_dist2)을 β 로 섞음. 난이도 5단계. 가중치는 KV `MODELS` (리포에 없음) |
 | API | `worker/streams/api.ts` | `POST /api/streams/start`, `POST /api/streams/move`. 상태는 AES-GCM 토큰으로 클라이언트가 들고 다님 |
 | 기록 | D1 `streams-records` (`migrations/`) | `streams_games`, `streams_turns` (think_ms, attempts) |
 | 웹 클라이언트 | `public/games/streams/script.js` | 카드 한 장씩 받아 놓기만 함 |
