@@ -1,12 +1,15 @@
 // stats.ts 집계 확인 (DO 없이 순수 함수만).
 //   node worker/streams/stats.test.ts
 import assert from "node:assert/strict";
-import { applyFinished, applyFirst, applyPvp, applyStarted, binOf, counted, dayOf, dayStartIso, emptyStats, publicView, SLOTS } from "./stats.ts";
+import { applyFinished, applyFirst, applyPvp, applyStarted, binOf, counted, dayOf, dayStartIso, emptyStats, nextDayStart, publicView, rollDay, SLOTS } from "./stats.ts";
 
 // 한국 날짜: UTC 15:00 = 다음날 00:00 KST
 assert.equal(dayOf(Date.parse("2026-09-30T14:59:59Z")), "2026-09-30");
 assert.equal(dayOf(Date.parse("2026-09-30T15:00:00Z")), "2026-10-01");
 assert.equal(dayStartIso(Date.parse("2026-09-30T20:00:00Z")), "2026-09-30T15:00:00.000Z");
+// 다음 한국 자정 (자정 알람 시각): 자정 바로 전이든 바로 뒤든 그다음 자정
+assert.equal(nextDayStart(Date.parse("2026-09-30T14:59:59Z")), Date.parse("2026-09-30T15:00:00Z"));
+assert.equal(nextDayStart(Date.parse("2026-09-30T15:00:00Z")), Date.parse("2026-10-01T15:00:00Z"));
 
 // 세는 판: AI 대전, 에디터·로컬 테스트 제외, 헤더 없는 옛 판은 센다
 assert.equal(counted("web/1"), true);
@@ -65,5 +68,17 @@ applyStarted(s, "g4", Date.parse("2026-09-30T16:00:00Z"));
 assert.equal(s.day, "2026-10-01");
 assert.equal(s.todayStarted, 1);
 assert.equal(s.todayFinished, 0);
+
+// 자정이 지나고 판이 하나도 없어도 공개 응답의 "오늘" 은 비워진다 (역대 값은 남는다)
+const y = emptyStats(t0);
+applyStarted(y, "y1", t0);
+applyFinished(y, { id: "y1", level: 2, me: 55, ai: 40, client: "web/1" }, t0 + 60_000);
+assert.equal(publicView(y, t0 + 120_000).todayFinished, 1);
+const midnight = publicView(y, Date.parse("2026-09-30T15:00:00Z"));
+assert.equal(midnight.day, "2026-10-01");
+assert.deepEqual([midnight.todayFinished, midnight.todayBest], [0, 0]);
+assert.deepEqual([midnight.finished, midnight.best], [1, 55]);
+assert.equal(y.todayStarted, 0);
+assert.equal(rollDay(y, Date.parse("2026-09-30T16:00:00Z")), false); // 같은 날 다시 → 그대로
 
 console.log("stats.test: ok");
