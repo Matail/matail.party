@@ -1,17 +1,17 @@
 // STREAMS v17 AI — Worker용 추론 (streams-v17 리포 runtime/streams_ai.py 를 옮긴 것).
 // 공정 정보: 보드(20칸, 0=빈칸)와 현재 카드만 본다. 덱 구성·순서는 쓰지 않는다.
-// 난이도: π_β(a) ∝ exp( log π_h(a) + β · log π_SGAZ(a) )
+// 난이도: π_β(a) ∝ exp( log π_h(a) + β · log π_강(a) ). 강한 정책망은 증류 2회(sgaz_dist2, 2026-11-27부터)
 
 import { N, POOL_CNT, SCORE_TABLE, runLengths } from "./game.ts";
 
 export type Level = 1 | 2 | 3 | 4 | 5;
 
-// 평가 2000판 평균: 22.3 / 32.6 / 39.2 / 46.7 / 49.0 (사람 평균 31.3)
+// 보류 덱 20,000판 평균: 22.3 / 33.0 / 38.8 / 47.5 / 51.4 (사람 평균 31.3). 숙련·고수는 이전(SGAZ β 0.25·0.5)과 같은 점수, 마스터 +2.3
 export const LEVELS: Record<Level, { name: string; beta: number; how: "sample" | "argmax" }> = {
   1: { name: "입문", beta: 0, how: "sample" },
   2: { name: "보통", beta: 0, how: "argmax" },
-  3: { name: "숙련", beta: 0.25, how: "argmax" },
-  4: { name: "고수", beta: 0.5, how: "argmax" },
+  3: { name: "숙련", beta: 0.17, how: "argmax" },
+  4: { name: "고수", beta: 0.41, how: "argmax" },
   5: { name: "마스터", beta: 2, how: "argmax" },
 };
 

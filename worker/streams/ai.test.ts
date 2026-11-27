@@ -11,7 +11,7 @@ const load = (n: string) => {
   return new PolicyNet(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength), manifest[n]);
 };
 const human = load("human_bc");
-const ai = new StreamsAI(human, load("sgaz_d"));
+const ai = new StreamsAI(human, load("sgaz_dist2"));
 const tests = JSON.parse(readFileSync(join(dir, "testvec.json"), "utf8"));
 
 let maxErr = 0, match = 0, total = 0;

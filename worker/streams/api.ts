@@ -32,7 +32,7 @@ export interface Env {
 /** 실시간 통계는 한 곳(DO 하나)에 모은다 */
 export const hub = (env: Env) => env.STATS.get(env.STATS.idFromName("global"));
 
-const AI_MODEL = "v17-pikl";
+const AI_MODEL = "v17-pikl-dist2";
 let aiPromise: Promise<StreamsAI> | null = null;
 
 export function loadAI(env: Env): Promise<StreamsAI> {
@@ -40,12 +40,12 @@ export function loadAI(env: Env): Promise<StreamsAI> {
     // 가중치는 바뀌지 않으므로 엣지 캐시를 길게 (기본 60초면 새 isolate 마다 원본에서 다시 받음)
     const cacheTtl = 86400;
     const [manifest, human, sgaz] = await Promise.all([
-      env.MODELS.get<Record<string, ManifestEntry[]>>("streams/manifest.json", { type: "json", cacheTtl }),
+      env.MODELS.get<Record<string, ManifestEntry[]>>("streams/manifest_dist2.json", { type: "json", cacheTtl }),
       env.MODELS.get("streams/human_bc.bin", { type: "arrayBuffer", cacheTtl }),
-      env.MODELS.get("streams/sgaz_d.bin", { type: "arrayBuffer", cacheTtl }),
+      env.MODELS.get("streams/sgaz_dist2.bin", { type: "arrayBuffer", cacheTtl }),
     ]);
     if (!manifest || !human || !sgaz) throw new Error("model files missing in KV");
-    return new StreamsAI(new PolicyNet(human, manifest.human_bc), new PolicyNet(sgaz, manifest.sgaz_d));
+    return new StreamsAI(new PolicyNet(human, manifest.human_bc), new PolicyNet(sgaz, manifest.sgaz_dist2));
   })().catch((e) => {
     aiPromise = null;
     throw e;
