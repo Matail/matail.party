@@ -53,9 +53,12 @@ export function emptyStats(now: number): AimStats {
   };
 }
 
-function rollDay(s: AimStats, now: number) {
+/** 날짜가 바뀌었으면 "오늘" 칸을 비운다. 비웠으면 true */
+export function rollDay(s: AimStats, now: number): boolean {
   const d = dayOf(now);
-  if (d !== s.day) Object.assign(s, { day: d, todayFinished: 0, todayBest: 0 });
+  if (d === s.day) return false;
+  Object.assign(s, { day: d, todayFinished: 0, todayBest: 0 });
+  return true;
 }
 
 export function applyStarted(s: AimStats, id: string, now: number) {
@@ -105,8 +108,10 @@ export function applyFinished(s: AimStats, g: Finished, now: number) {
   delete s.active[g.id];
 }
 
-/** 밖으로 내보내는 모양: 진행 중 판 id 대신 개수만, 분포는 끝의 0 을 잘라서 */
+/** 밖으로 내보내는 모양: 진행 중 판 id 대신 개수만, 분포는 끝의 0 을 잘라서.
+ *  자정이 지났는데 아직 아무 판도 없었으면 여기서 "오늘" 을 비운다 (STREAMS 와 같다) */
 export function publicView(s: AimStats, now: number) {
+  rollDay(s, now);
   for (const [id, t] of Object.entries(s.active)) if (now - t > ACTIVE_MS) delete s.active[id];
   const trim = (a: number[]) => a.slice(0, a.findLastIndex((v) => v > 0) + 1);
   return {

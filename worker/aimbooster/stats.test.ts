@@ -47,4 +47,10 @@ assert.equal(v.reaction[12], 20);              // 홀수 판 20개만 반응 시
 assert.ok(!("marks" in v) && !("active" in v));
 assert.equal(v.accuracyAll, (40 * 41) / 2 / 4000);
 
+// 자정이 지나고 판이 하나도 없어도 공개 응답의 "오늘" 은 비워진다 (t0 는 한국 12시 → 15시간 뒤가 다음날 0시)
+const next = publicView(s, t0 + 15 * 3600_000);
+assert.equal(next.day, "2026-10-03");
+assert.deepEqual([next.todayFinished, next.todayBest], [0, 0]);
+assert.deepEqual([next.finished, next.best], [40, 40_000]);
+
 console.log("stats ok");

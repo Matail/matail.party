@@ -1,7 +1,8 @@
 // AIMBOOSTER 실시간 집계 Durable Object — 분포(stats.ts)를 저장하고 상위 % 를 답하고 웹소켓으로 방송한다.
 // STREAMS StatsHub 와 같은 방식: 보는 사람이 가만히 있으면 하이버네이션 API 로 잠들어 비용이 들지 않는다.
 import { DurableObject } from "cloudflare:workers";
-import { applyFinished, applyStarted, countFromD1, counted, publicView, rank, seen, type AimStats, type Finished, type PublicAimStats, type Rank } from "./stats.ts";
+import { nextDayStart } from "../streams/stats.ts";
+import { applyFinished, applyStarted, countFromD1, counted, publicView, rank, rollDay, seen, type AimStats, type Finished, type PublicAimStats, type Rank } from "./stats.ts";
 
 export interface FinishResult extends Rank {
   duplicate: boolean;   // 이미 받은 판 (같은 토큰을 다시 보냄)
@@ -20,7 +21,13 @@ export class AimStatsHub extends DurableObject<{ DB: D1Database }> {
     await this.ctx.storage.put("stats", this.stats);
     const now = Date.now();
     if (now - this.lastSent >= 1000) this.broadcast(now);
-    else if ((await this.ctx.storage.getAlarm()) === null) await this.ctx.storage.setAlarm(this.lastSent + 1000);
+    else await this.alarmBy(this.lastSent + 1000);
+  }
+
+  /** 알람은 하나뿐이라 방송(1초 뒤)과 자정을 같이 쓴다 — 이미 더 이른 알람이 있으면 그대로 둔다 */
+  private async alarmBy(at: number) {
+    const cur = await this.ctx.storage.getAlarm();
+    if (cur === null || cur > at) await this.ctx.storage.setAlarm(at);
   }
 
   private broadcast(now: number) {
@@ -31,9 +38,13 @@ export class AimStatsHub extends DurableObject<{ DB: D1Database }> {
     }
   }
 
+  /** 몰아 둔 방송, 또는 한국 자정 — 자정이면 "오늘" 을 비워 저장하고 보는 사람들에게 바로 보낸다 (STREAMS 와 같다) */
   async alarm() {
-    await this.load();
-    this.broadcast(Date.now());
+    const s = await this.load();
+    const now = Date.now();
+    if (rollDay(s, now)) await this.ctx.storage.put("stats", s);
+    this.broadcast(now);
+    if (this.ctx.getWebSockets().length) await this.alarmBy(nextDayStart(now));
   }
 
   async started(id: string, client: string | null) {
@@ -75,6 +86,7 @@ export class AimStatsHub extends DurableObject<{ DB: D1Database }> {
     const [client, server] = Object.values(new WebSocketPair());
     this.ctx.acceptWebSocket(server);
     server.send(JSON.stringify(await this.snapshot()));
+    await this.alarmBy(nextDayStart(Date.now())); // 보는 동안 자정이 지나면 "오늘" 이 비워진 값을 받게
     return new Response(null, { status: 101, webSocket: client });
   }
 

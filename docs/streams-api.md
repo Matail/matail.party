@@ -180,7 +180,7 @@ x-streams-client: <종류>/<버전>
 | 필드 | 뜻 |
 |---|---|
 | `won` · `drawn` | 사람 기준 승 · 무 (패 = `finished - won - drawn`) |
-| `day` · `today*` | 한국 날짜 기준 오늘 |
+| `day` · `today*` | 한국 날짜 기준 오늘. 한국 자정(00:00)에 0 으로 비워지고, `/live` 를 보고 있으면 그때 바로 새 값이 온다 |
 | `playing` | 시작했지만 아직 끝나지 않은 판 (30분 넘으면 뺌) |
 | `levels[i].me` · `.ai` | 그 난이도 끝난 판의 사람 · AI 점수 합 (평균 = 합 / `games`) |
 | `bins` | 사람 점수 10점 단위 분포, 마지막은 100점 이상 |
@@ -354,3 +354,4 @@ x-streams-client: <종류>/<버전>
 | 2026-09-30 | `GET /api/streams/stats` · `/api/streams/live` (Durable Object `StatsHub`) |
 | 2026-09-30 | 관리자 설정 (migration 0006): 수집 끄기, 공개 카드 선택 — 통계 응답에 `cards`, 꺼진 카드의 필드는 빠짐. `best` · `todayStarted` 는 쓰는 카드가 없어 빠짐 |
 | 2026-10-13 | 멀티(방) 프로토콜 초안 — 아직 구현 전 |
+| 2026-11-27 | `today*` 가 자정 뒤 첫 판이 올 때까지 어제 값으로 남던 것 — 응답할 때 날짜를 확인하고, 자정에 `/live` 로 비워진 값을 보낸다 (AIMBOOSTER 도 같다) |

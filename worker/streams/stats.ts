@@ -54,6 +54,9 @@ export const dayOf = (ms: number) => new Date(ms + DAY_OFFSET_MS).toISOString().
 /** 한국 날짜 자정의 UTC ISO 문자열 (D1 created_at 비교용) */
 export const dayStartIso = (ms: number) => new Date(Date.parse(dayOf(ms) + "T00:00:00Z") - DAY_OFFSET_MS).toISOString();
 
+/** 다음 한국 자정 (ms) — "오늘" 칸을 비우고 방송할 알람 시각 */
+export const nextDayStart = (ms: number) => Date.parse(dayStartIso(ms)) + 24 * 3600 * 1000;
+
 export const counted = (client: string | null, mode = "ai") => mode === "ai" && !(client ?? "").startsWith("unity-editor/");
 
 export const binOf = (score: number) => Math.min(BINS - 1, Math.max(0, Math.floor(score / BIN_WIDTH)));
@@ -67,10 +70,12 @@ export function emptyStats(now: number): Stats {
   };
 }
 
-/** 날짜가 바뀌었으면 "오늘" 칸을 비운다 */
-function rollDay(s: Stats, now: number) {
+/** 날짜가 바뀌었으면 "오늘" 칸을 비운다. 비웠으면 true */
+export function rollDay(s: Stats, now: number): boolean {
   const d = dayOf(now);
-  if (d !== s.day) Object.assign(s, { day: d, todayStarted: 0, todayFinished: 0, todayBest: 0 });
+  if (d === s.day) return false;
+  Object.assign(s, { day: d, todayStarted: 0, todayFinished: 0, todayBest: 0 });
+  return true;
 }
 
 export function applyStarted(s: Stats, gameId: string, now: number) {
@@ -127,8 +132,10 @@ export function applyPvp(s: Stats, gameId: string) {
   s.pvp = (s.pvp ?? 0) + 1;
 }
 
-/** 밖으로 내보내는 모양: 진행 중 판 id 대신 개수만, 켜진 카드가 쓰는 값만 */
+/** 밖으로 내보내는 모양: 진행 중 판 id 대신 개수만, 켜진 카드가 쓰는 값만.
+ *  자정이 지났는데 아직 아무 판도 없었으면 여기서 "오늘" 을 비운다 — 판이 올 때만 비우면 어제 숫자가 남는다 */
 export function publicView(s: Stats, now: number, cards: readonly PublicCard[] = ALL_CARDS): PublicStats {
+  rollDay(s, now);
   for (const [id, t] of Object.entries(s.active)) if (now - t > ACTIVE_MS) delete s.active[id];
   const all: Record<string, unknown> = { ...s, playing: Object.keys(s.active).length, pvp: s.pvp ?? 0 };
   const out: Record<string, unknown> = { day: s.day, updatedAt: now, cards: [...cards] };
